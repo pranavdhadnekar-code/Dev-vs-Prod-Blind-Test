@@ -1,0 +1,268 @@
+/* Import Figtree font */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+
+/* Apply Figtree to app text only — do NOT use `*` or Material icon glyphs render as
+   literal names like "keyboard_double_arrow_left" / "keyboard_arrow_down". */
+.stApp,
+.stSidebar,
+.stApp p,
+.stApp label,
+.stApp input,
+.stApp textarea,
+.stApp button,
+.stApp h1,
+.stApp h2,
+.stApp h3,
+.stApp h4,
+.stApp h5,
+.stApp h6,
+.stApp li,
+.stApp td,
+.stApp th,
+.stApp caption,
+.stApp [data-testid="stMarkdownContainer"],
+.stApp [data-testid="stText"],
+.stApp [data-testid="stCaptionContainer"] {
+    font-family: 'Figtree', sans-serif !important;
+}
+
+/* Streamlit Material Symbols (sidebar toggle, expander chevrons, select arrows, etc.) */
+[data-testid="stIconMaterial"],
+[data-testid="stIconMaterial"] span {
+    font-family: "Material Symbols Rounded" !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    direction: ltr !important;
+    font-feature-settings: "liga" !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Primary buttons */
+.stButton > button {
+    background-color: #6642B3 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    background-color: #5535a0 !important;
+    box-shadow: 0 4px 8px rgba(102, 66, 179, 0.3) !important;
+}
+
+.stButton > button:active {
+    background-color: #4a2d8f !important;
+}
+
+/* Select boxes */
+.stSelectbox > div > div {
+    border-color: #d0d0d0 !important;
+    border-radius: 8px !important;
+}
+
+.stSelectbox [data-baseweb="select"] > div {
+    border-color: #d0d0d0 !important;
+    border-radius: 8px !important;
+}
+
+/* Multiselect */
+.stMultiSelect [data-baseweb="select"] > div {
+    border-color: #d0d0d0 !important;
+    border-radius: 8px !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] {
+    background-color: #e8e8e8 !important;
+    color: #4a4a4a !important;
+    border-radius: 8px !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] svg {
+    fill: #4a4a4a !important;
+}
+
+/* Radio buttons */
+.stRadio > label > div[role="radiogroup"] > label > div:first-child {
+    background-color: #6642B3 !important;
+    border-radius: 8px !important;
+}
+
+/* Checkboxes */
+.stCheckbox > label > div[data-testid="stMarkdownContainer"] > p {
+    color: #6642B3 !important;
+}
+
+
+/* Text input focus */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    border-radius: 8px !important;
+    border-color: #d0d0d0 !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: #6642B3 !important;
+    box-shadow: 0 0 0 0.2rem rgba(102, 66, 179, 0.25) !important;
+    outline: none !important;
+}
+
+/* Remove any pink/red colors from text areas */
+.stTextArea textarea,
+.stTextArea [data-baseweb="textarea"],
+textarea {
+    border: 0.5px solid #d0d0d0 !important;
+}
+
+.stTextArea textarea:focus,
+.stTextArea [data-baseweb="textarea"]:focus,
+textarea:focus {
+    border: 0.5px solid #6642B3 !important;
+    outline: none !important;
+}
+
+/* Text area styling */
+.stTextArea textarea:focus,
+.stTextArea [data-baseweb="textarea"]:focus,
+textarea:focus {
+    border: 0.5px solid #6642B3 !important;
+    outline: none !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] button {
+    border-radius: 8px !important;
+}
+
+.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    background-color: #6642B3 !important;
+    color: white !important;
+}
+
+/* Links */
+a {
+    color: #6642B3 !important;
+}
+
+a:hover {
+    color: #5535a0 !important;
+}
+
+/* Expander header */
+.streamlit-expanderHeader {
+    background-color: rgba(102, 66, 179, 0.1) !important;
+    border-radius: 8px !important;
+}
+
+/* Success/Info messages accent */
+.stSuccess, .stInfo {
+    border-left-color: #6642B3 !important;
+}
+
+/* Progress bar styling */
+.stProgress > div > div > div {
+    background-color: #e0e0e0 !important;
+}
+
+.stProgress > div > div > div > div {
+    background-color: #6642B3 !important;
+}
+
+/* Sidebar styling for minimal design */
+.stSidebar .stSuccess {
+    font-size: 0.8rem !important;
+    padding: 0.3rem !important;
+    margin: 0.2rem 0 !important;
+}
+
+/* Navbar-style buttons in sidebar */
+.stSidebar .stButton > button {
+    margin: 0.05rem 0 !important;
+    text-align: left !important;
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.5rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    background-color: #f5f5f5 !important;
+    color: #6642B3 !important;
+    border: 1px solid #6642B3 !important;
+    box-shadow: none !important;
+}
+
+.stSidebar .stButton > button:hover {
+    background-color: #ffffff !important;
+    color: #6642B3 !important;
+    border-color: #6642B3 !important;
+    transform: translateX(1px) !important;
+}
+
+.stSidebar .stButton > button:active {
+    transform: translateX(3px) !important;
+}
+
+/* Dark theme navbar buttons */
+[data-theme="dark"] .stSidebar .stButton > button,
+.dark .stSidebar .stButton > button {
+    color: #6642B3 !important;
+    border-color: #6642B3 !important;
+    background-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .stSidebar .stButton > button:hover,
+.dark .stSidebar .stButton > button:hover {
+    background-color: #2a2a2a !important;
+    color: #6642B3 !important;
+    border-color: #6642B3 !important;
+}
+
+/* Dark theme navigation button text */
+[data-theme="dark"] .stSidebar .stButton > button,
+[data-theme="dark"] .stSidebar .stButton > button span,
+[data-theme="dark"] .stSidebar .stButton > button div,
+.dark .stSidebar .stButton > button,
+.dark .stSidebar .stButton > button span,
+.dark .stSidebar .stButton > button div {
+    color: #ffffff !important;
+}
+
+
+.stSidebar .stError {
+    font-size: 0.8rem !important;
+    padding: 0.3rem !important;
+    margin: 0.2rem 0 !important;
+}
+
+.stSidebar .stSubheader {
+    font-size: 1.2rem !important;
+    margin-bottom: 0.5rem !important;
+    font-weight: 700 !important;
+}
+
+.stSidebar .stCode {
+    font-size: 0.7rem !important;
+    padding: 0.2rem !important;
+}
+
+.stSidebar .stCaption {
+    font-size: 0.7rem !important;
+    margin-top: 0.2rem !important;
+}
+
+/* Make provider list more compact */
+.stSidebar .stMarkdown {
+    margin: 0.1rem 0 !important;
+    font-size: 0.8rem !important;
+}
+
+.stSidebar .stMarkdown p {
+    margin: 0.1rem 0 !important;
+    font-size: 0.9rem !important;
+}
