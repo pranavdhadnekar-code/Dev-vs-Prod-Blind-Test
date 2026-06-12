@@ -1,6 +1,20 @@
 """
 Database management for TTS Benchmarking Tool
 Handles persistent storage of results, ELO ratings, and historical data
+
+Backends
+--------
+Two interchangeable backends are supported transparently:
+
+* **SQLite** (default) — a local ``benchmark_data.db`` file. Used for local
+  development and the legacy app. No configuration required.
+* **PostgreSQL** (e.g. Neon) — enabled automatically when a ``DATABASE_URL``
+  (``postgres://...`` / ``postgresql://...``) is provided via environment
+  variable or Streamlit secrets. Use this for shared cloud deployments
+  (Streamlit Community Cloud) so every vote persists in one place.
+
+All existing methods keep using ``?`` placeholders and ``conn = self._connect()``;
+a thin shim rewrites placeholders/DDL for Postgres so call sites stay identical.
 """
 import sqlite3
 import json
@@ -10,6 +24,99 @@ from typing import Dict, List, Optional, Any
 from dataclasses import asdict
 import pandas as pd
 
+
+def _resolve_database_url() -> str:
+    """Return a Postgres connection string if configured, else ''.
+
+    Looks at the ``DATABASE_URL`` environment variable first (Streamlit Cloud
+    exports top-level secrets to the environment), then falls back to
+    ``st.secrets`` when Streamlit is importable.
+    """
+    url = (os.environ.get("DATABASE_URL") or "").strip()
+    if url:
+        return url
+    try:  # optional: only present when running under Streamlit
+        import streamlit as st  # noqa: WPS433 (local import by design)
+        return str(st.secrets.get("DATABASE_URL", "")).strip()
+    except Exception:
+        return ""
+
+
+class _CursorShim:
+    """Wraps a DB-API cursor, translating SQLite syntax to Postgres on the fly.
+
+    Only matters when ``use_postgres`` is True; for SQLite it is a passthrough.
+    """
+
+    def __init__(self, cursor, use_postgres: bool):
+        self._cur = cursor
+        self._pg = use_postgres
+
+    @staticmethod
+    def _translate(sql: str) -> str:
+        sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+        sql = sql.replace(" DATETIME", " TIMESTAMP")
+        # Make the legacy column-backfill ALTERs idempotent on Postgres.
+        sql = sql.replace("ADD COLUMN ", "ADD COLUMN IF NOT EXISTS ")
+        # psycopg uses %s placeholders; our queries use ?.
+        sql = sql.replace("?", "%s")
+        return sql
+
+    def execute(self, sql: str, params=None):
+        if self._pg:
+            sql = self._translate(sql)
+        if params is None:
+            self._cur.execute(sql)
+        else:
+            self._cur.execute(sql, params)
+        return self
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+    def __getattr__(self, name):
+        return getattr(self._cur, name)
+
+
+class _ConnShim:
+    """Wraps a connection so ``cursor()`` yields a placeholder-translating cursor.
+
+    Also remembers whether callers want dict-style rows (mirrors the previous
+    ``conn.row_factory = sqlite3.Row`` usage).
+    """
+
+    def __init__(self, raw, use_postgres: bool, dict_rows: bool):
+        self._raw = raw
+        self._pg = use_postgres
+        self._dict = dict_rows
+        if not use_postgres and dict_rows:
+            self._raw.row_factory = sqlite3.Row
+
+    @property
+    def raw(self):
+        return self._raw
+
+    def cursor(self):
+        if self._pg:
+            if self._dict:
+                from psycopg.rows import dict_row
+                cur = self._raw.cursor(row_factory=dict_row)
+            else:
+                cur = self._raw.cursor()
+        else:
+            cur = self._raw.cursor()
+        return _CursorShim(cur, self._pg)
+
+    def commit(self):
+        self._raw.commit()
+
+    def close(self):
+        self._raw.close()
+
+
 class BenchmarkDatabase:
     """Database manager for benchmark results and ELO ratings"""
 
@@ -18,16 +125,28 @@ class BenchmarkDatabase:
         """SQLite path; override with DATABASE_PATH for cloud deployments."""
         return os.environ.get("DATABASE_PATH", "benchmark_data.db")
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, database_url: Optional[str] = None):
+        self.database_url = (database_url or _resolve_database_url()).strip()
+        self.use_postgres = self.database_url.startswith("postgres")
         self.db_path = db_path or self.default_db_path()
-        parent = os.path.dirname(os.path.abspath(self.db_path))
-        if parent:
-            os.makedirs(parent, exist_ok=True)
+        if not self.use_postgres:
+            parent = os.path.dirname(os.path.abspath(self.db_path))
+            if parent:
+                os.makedirs(parent, exist_ok=True)
         self.init_database()
+
+    def _connect(self, dict_rows: bool = False) -> _ConnShim:
+        """Open a connection to the active backend (SQLite or Postgres)."""
+        if self.use_postgres:
+            import psycopg
+            raw = psycopg.connect(self.database_url)
+        else:
+            raw = sqlite3.connect(self.db_path)
+        return _ConnShim(raw, self.use_postgres, dict_rows)
     
     def init_database(self):
         """Initialize database tables"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -215,7 +334,7 @@ class BenchmarkDatabase:
     
     def save_benchmark_result(self, result, test_id: str = None):
         """Save a benchmark result to database"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -251,7 +370,7 @@ class BenchmarkDatabase:
     
     def update_provider_stats(self, provider: str, result):
         """Update provider statistics"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('SELECT * FROM provider_stats WHERE provider = ?', (provider,))
@@ -294,7 +413,7 @@ class BenchmarkDatabase:
     
     def get_elo_rating(self, provider: str) -> float:
         """Get ELO rating for a provider"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('SELECT rating FROM elo_ratings WHERE provider = ?', (provider,))
@@ -311,14 +430,23 @@ class BenchmarkDatabase:
     def init_elo_rating(self, provider: str, rating: float = 1000.0):
         """Initialize ELO rating for a new provider"""
         self.init_database()
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            INSERT OR IGNORE INTO elo_ratings 
-            (provider, rating, games_played, wins, losses, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (provider, rating, 0, 0, 0, datetime.now()))
+        if self.use_postgres:
+            elo_sql = '''
+                INSERT INTO elo_ratings
+                (provider, rating, games_played, wins, losses, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT (provider) DO NOTHING
+            '''
+        else:
+            elo_sql = '''
+                INSERT OR IGNORE INTO elo_ratings 
+                (provider, rating, games_played, wins, losses, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?)
+            '''
+        cursor.execute(elo_sql, (provider, rating, 0, 0, 0, datetime.now()))
         
         conn.commit()
         conn.close()
@@ -359,7 +487,7 @@ class BenchmarkDatabase:
         if new_loser_rating < 0:
             new_loser_rating = 0
         
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         # Update winner: increase rating, increment wins
@@ -383,7 +511,7 @@ class BenchmarkDatabase:
     
     def get_all_elo_ratings(self) -> Dict[str, Dict]:
         """Get all ELO ratings"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('SELECT * FROM elo_ratings ORDER BY rating DESC')
@@ -406,7 +534,7 @@ class BenchmarkDatabase:
     
     def get_provider_stats(self) -> Dict[str, Dict]:
         """Get all provider statistics"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('SELECT * FROM provider_stats')
@@ -429,34 +557,40 @@ class BenchmarkDatabase:
     
     def get_recent_results(self, limit: int = 100) -> pd.DataFrame:
         """Get recent benchmark results as DataFrame"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         
-        df = pd.read_sql_query('''
+        query = '''
             SELECT * FROM benchmark_results 
             ORDER BY timestamp DESC 
             LIMIT ?
-        ''', conn, params=(limit,))
+        '''
+        if self.use_postgres:
+            query = query.replace("?", "%s")
+        df = pd.read_sql_query(query, conn.raw, params=(limit,))
         
         conn.close()
         return df
     
     def get_results_by_provider(self, provider: str, limit: int = 50) -> pd.DataFrame:
         """Get results for a specific provider"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         
-        df = pd.read_sql_query('''
+        query = '''
             SELECT * FROM benchmark_results 
             WHERE provider = ?
             ORDER BY timestamp DESC 
             LIMIT ?
-        ''', conn, params=(provider, limit))
+        '''
+        if self.use_postgres:
+            query = query.replace("?", "%s")
+        df = pd.read_sql_query(query, conn.raw, params=(provider, limit))
         
         conn.close()
         return df
     
     def clear_all_data(self):
         """Clear all data from database"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('DELETE FROM benchmark_results')
@@ -470,13 +604,20 @@ class BenchmarkDatabase:
     
     def clear_old_data(self, days_old: int = 30):
         """Clear data older than specified days"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            DELETE FROM benchmark_results 
-            WHERE timestamp < datetime('now', '-{} days')
-        '''.format(days_old))
+        days_old = int(days_old)
+        if self.use_postgres:
+            cursor.execute(
+                "DELETE FROM benchmark_results WHERE timestamp < NOW() - (? || ' days')::interval",
+                (days_old,),
+            )
+        else:
+            cursor.execute(
+                "DELETE FROM benchmark_results "
+                "WHERE timestamp < datetime('now', '-{} days')".format(days_old)
+            )
         
         conn.commit()
         conn.close()
@@ -507,7 +648,7 @@ class BenchmarkDatabase:
     
     def save_user_vote(self, winner: str, loser: str, text_sample: str, session_id: str = "default", vote_type: str = "user_preference", metadata: dict = None):
         """Save a user preference vote"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         # Determine vote source from session_id
@@ -534,7 +675,7 @@ class BenchmarkDatabase:
     
     def get_vote_statistics(self) -> Dict[str, Any]:
         """Get voting statistics"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         # Get total votes per provider
@@ -566,7 +707,7 @@ class BenchmarkDatabase:
     
     def get_ranked_blind_test_votes(self) -> List[tuple]:
         """Get all votes from Ranked Blind Test (blind_battle_2 sessions)"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         # Get votes where session_id contains 'blind_battle_2' or metadata contains 'ranked_blind_test'
@@ -583,7 +724,7 @@ class BenchmarkDatabase:
     
     def get_fvs_votes(self) -> List[tuple]:
         """Get all votes from Falcon vs Zeroshot tests"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         # Get votes where session_id contains 'fvs' or metadata contains 'falcon_vs_zeroshot'
@@ -600,7 +741,7 @@ class BenchmarkDatabase:
     
     def save_locale_summary(self, locale: str, summary: str, comment_count: int, model_used: str = "gpt-4o"):
         """Save or update a summary for a locale"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         now = datetime.now().isoformat()
@@ -628,7 +769,7 @@ class BenchmarkDatabase:
     
     def get_locale_summary(self, locale: str) -> Optional[Dict[str, Any]]:
         """Get the stored summary for a locale"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -653,7 +794,7 @@ class BenchmarkDatabase:
     
     def delete_locale_summary(self, locale: str):
         """Delete a stored summary for a locale (to force regeneration)"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('DELETE FROM locale_summaries WHERE locale = ?', (locale,))
@@ -662,7 +803,7 @@ class BenchmarkDatabase:
     
     def get_latency_stats_by_provider(self) -> Dict[str, Dict]:
         """Get latency statistics including P95 for each provider"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -714,7 +855,7 @@ class BenchmarkDatabase:
     
     def get_ping_stats_by_provider(self) -> Dict[str, Dict]:
         """Get network latency (latency_1) statistics for each provider"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -766,7 +907,7 @@ class BenchmarkDatabase:
     
     def get_ttfb_stats_by_provider(self) -> Dict[str, Dict]:
         """Get TTFB (Time to First Byte) statistics for each provider"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -827,17 +968,20 @@ class BenchmarkDatabase:
         `plan` is a scheduler.BattlePlan (or any object with the same fields).
         """
         location = location or {}
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO battles
+        cols = '''
             (battle_id, language, item_id, item_text, strategy, anchor, competitor,
              is_anchor_pair, provider_a, provider_b, left_provider, left_voice,
              right_provider, right_voice, position_seed, left_clip_sha256,
              right_clip_sha256, normalization_params, session_id,
              location_country, location_city, location_region, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ''', (
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        if self.use_postgres:
+            insert_sql = "INSERT INTO battles" + cols + " ON CONFLICT (battle_id) DO NOTHING"
+        else:
+            insert_sql = "INSERT OR REPLACE INTO battles" + cols
+        cursor.execute(insert_sql, (
             plan.battle_id, plan.language, plan.item_id, plan.item_text, plan.strategy,
             plan.anchor, plan.competitor, 1 if plan.is_anchor_pair else 0,
             plan.provider_a, plan.provider_b, plan.left_provider, plan.left_voice,
@@ -851,8 +995,7 @@ class BenchmarkDatabase:
         conn.close()
 
     def get_battle(self, battle_id: str) -> Optional[Dict[str, Any]]:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect(dict_rows=True)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM battles WHERE battle_id = ?', (battle_id,))
         row = cursor.fetchone()
@@ -886,7 +1029,7 @@ class BenchmarkDatabase:
             winner, loser = None, None
 
         location = location or {}
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO votes
@@ -911,7 +1054,7 @@ class BenchmarkDatabase:
         {'A','B','tie'} where 'A' means provider_a was preferred. Joins votes to
         battles so the labeling matches the served clips.
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         if language:
             cursor.execute('''
@@ -933,7 +1076,7 @@ class BenchmarkDatabase:
         Returns left/right provider + the exact voice id served on each side,
         plus the outcome ('A'=left preferred, 'B'=right preferred, 'tie').
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         base = '''
             SELECT b.left_provider, b.right_provider, b.left_voice, b.right_voice, v.outcome
@@ -976,7 +1119,7 @@ class BenchmarkDatabase:
         return grid
 
     def get_languages_with_votes(self) -> List[str]:
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         cursor.execute('SELECT DISTINCT language FROM votes WHERE language IS NOT NULL')
         langs = [r[0] for r in cursor.fetchall()]
@@ -984,7 +1127,7 @@ class BenchmarkDatabase:
         return langs
 
     def get_vote_counts(self) -> Dict[str, int]:
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         cursor.execute('SELECT COUNT(*) FROM votes')
         total = cursor.fetchone()[0]
@@ -995,8 +1138,7 @@ class BenchmarkDatabase:
 
     def get_arena_comments(self, language: str = None) -> List[Dict[str, Any]]:
         """De-anonymized comments (for the per-language OpenAI summary)."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect(dict_rows=True)
         cursor = conn.cursor()
         if language:
             cursor.execute('''SELECT * FROM votes
@@ -1011,7 +1153,7 @@ class BenchmarkDatabase:
                          inputs_hash: str, code_version: str, engine_params: dict,
                          results: dict, n_battles: int, n_votes: int):
         """Persist a versioned snapshot of a fit (reproducible published number)."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO ratings_runs
@@ -1027,8 +1169,7 @@ class BenchmarkDatabase:
         conn.close()
 
     def get_latest_ratings_runs(self, limit: int = 50) -> List[Dict[str, Any]]:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect(dict_rows=True)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM ratings_runs ORDER BY created_at DESC LIMIT ?', (limit,))
         rows = [dict(r) for r in cursor.fetchall()]

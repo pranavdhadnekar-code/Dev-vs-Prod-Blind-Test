@@ -50,9 +50,10 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Streamlit (keep config.toml; ignore local secrets)
+# Streamlit (keep config.toml + secrets template; ignore real local secrets)
 .streamlit/*
 !.streamlit/config.toml
+!.streamlit/secrets.toml.example
 .streamlit/secrets.toml
 
 # Data and exports
