@@ -108,10 +108,27 @@ async def check_provider(
                 "latency_ms": result.latency_ms,
             }
         err = (result.error_message or "Synthesis failed").replace("\n", " ")
+        # #region agent log
+        try:
+            from tts_providers import _agent_log
+            _agent_log(
+                "B",
+                "provider_health.py:check_provider",
+                "provider_probe_failed",
+                {
+                    "provider_id": provider_id,
+                    "error_snippet": err[:200],
+                    "has_unusual_activity": "detected_unusual_activity" in err,
+                    "is_cloud": bool(os.getenv("STREAMLIT_SERVER_PORT")),
+                },
+            )
+        except Exception:
+            pass
+        # #endregion
         return {
             "state": "fail",
             "configured": True,
-            "message": err[:140],
+            "message": err[:220],
             "latency_ms": result.latency_ms,
         }
     except asyncio.TimeoutError:

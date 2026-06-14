@@ -981,6 +981,28 @@ class BenchmarkDatabase:
             insert_sql = "INSERT INTO battles" + cols + " ON CONFLICT (battle_id) DO NOTHING"
         else:
             insert_sql = "INSERT OR REPLACE INTO battles" + cols
+        # #region agent log
+        try:
+            import json as _json, time as _time, os as _os
+            _log = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".cursor", "debug-2ec0ba.log")
+            _os.makedirs(_os.path.dirname(_log), exist_ok=True)
+            _seed = plan.position_seed
+            with open(_log, "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps({
+                    "sessionId": "2ec0ba", "hypothesisId": "F",
+                    "location": "database.py:create_battle",
+                    "message": "battle_insert_seed",
+                    "data": {
+                        "position_seed": _seed,
+                        "seed_bits": _seed.bit_length() if isinstance(_seed, int) else None,
+                        "exceeds_pg_int": isinstance(_seed, int) and _seed > 2147483647,
+                        "use_postgres": self.use_postgres,
+                    },
+                    "timestamp": int(_time.time() * 1000),
+                }) + "\n")
+        except Exception:
+            pass
+        # #endregion
         cursor.execute(insert_sql, (
             plan.battle_id, plan.language, plan.item_id, plan.item_text, plan.strategy,
             plan.anchor, plan.competitor, 1 if plan.is_anchor_pair else 0,

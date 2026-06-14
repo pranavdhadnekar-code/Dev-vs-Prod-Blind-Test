@@ -26,6 +26,49 @@ from config import (
     NORMALIZATION,
 )
 
+# #region agent log
+_DEBUG_LOG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    ".cursor", "debug-2ec0ba.log",
+)
+
+
+def _agent_log(hypothesis_id: str, location: str, message: str, data: Optional[Dict[str, Any]] = None) -> None:
+    payload = {
+        "sessionId": "2ec0ba",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data or {},
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        os.makedirs(os.path.dirname(_DEBUG_LOG_PATH), exist_ok=True)
+        with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, default=str) + "\n")
+    except Exception:
+        pass
+# #endregion
+
+
+def humanize_provider_error(provider_id: str, status: int, error_text: str) -> str:
+    """Map raw vendor errors to actionable messages for operators/raters."""
+    body = (error_text or "").strip()
+    lower = body.lower()
+    if provider_id.startswith("elevenlabs") and (
+        "detected_unusual_activity" in lower or "unusual activity" in lower
+    ):
+        return (
+            "ElevenLabs free tier blocks cloud hosting (Streamlit Cloud / datacenter IPs). "
+            "Upgrade to a paid ElevenLabs plan, or remove ELEVENLABS_API_KEY from this deployment."
+        )
+    if provider_id.startswith("elevenlabs") and status == 401:
+        return "ElevenLabs API key invalid or revoked. Check ELEVENLABS_API_KEY in secrets."
+    if body:
+        return f"API Error {status}: {body[:200]}"
+    return f"API Error {status}"
+
+
 # Arena standard: request WAV @ 24 kHz mono from every API that supports it.
 ARENA_SAMPLE_RATE: int = int(NORMALIZATION.get("sample_rate", 24000))
 ARENA_CHANNELS: int = int(NORMALIZATION.get("channels", 1))
@@ -1087,7 +1130,21 @@ class ElevenLabsV3TTSProvider(TTSProvider):
                             if missing_voices:
                                 print(f"Warning: Some expected voices not found in account: {missing_voices}")
                     else:
+                        err_body = await response.text()
                         print(f"Failed to fetch voices from API (status {response.status}), using fallback IDs")
+                        # #region agent log
+                        _agent_log(
+                            "D",
+                            "tts_providers.py:ElevenLabsV3._fetch_voices",
+                            "elevenlabs_voices_response",
+                            {
+                                "status": response.status,
+                                "error_snippet": err_body[:200],
+                                "has_unusual_activity": "detected_unusual_activity" in err_body,
+                                "is_cloud": bool(os.getenv("STREAMLIT_SERVER_PORT")),
+                            },
+                        )
+                        # #endregion
                         self.voice_id_map = self.fallback_voice_id_map.copy()
         except Exception as e:
             print(f"Error fetching voices from API: {e}, using fallback IDs")
@@ -1175,13 +1232,33 @@ class ElevenLabsV3TTSProvider(TTSProvider):
                         )
                     else:
                         error_text = await response.text()
+                        # #region agent log
+                        _agent_log(
+                            "A",
+                            "tts_providers.py:ElevenLabsV3.generate_speech",
+                            "elevenlabs_tts_response",
+                            {
+                                "status": response.status,
+                                "error_snippet": error_text[:200],
+                                "has_unusual_activity": "detected_unusual_activity" in error_text,
+                                "is_cloud": bool(os.getenv("STREAMLIT_SERVER_PORT")),
+                                "provider": self.provider_id,
+                            },
+                        )
+                        # #endregion
+                        friendly = humanize_provider_error(
+                            self.provider_id, response.status, error_text)
                         return TTSResult(
                             success=False,
                             audio_data=None,
                             latency_ms=latency_ms,
                             file_size_bytes=0,
-                            error_message=f"API Error {response.status}: {error_text}",
-                            metadata={"provider": self.provider_id}
+                            error_message=friendly,
+                            metadata={
+                                "provider": self.provider_id,
+                                "http_status": response.status,
+                                "cloud_blocked": "detected_unusual_activity" in error_text,
+                            },
                         )
         
         except asyncio.TimeoutError:

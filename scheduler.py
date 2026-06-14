@@ -253,7 +253,7 @@ class Scheduler:
         va = self._voice_for(m.provider_a, language, chosen_gender)
         vb = self._voice_for(m.provider_b, language, chosen_gender)
 
-        position_seed = rng.getrandbits(63)
+        position_seed = rng.getrandbits(31)
         swap = assign_sides(m.provider_a, m.provider_b, position_seed)
         if swap:
             left_p, left_v, right_p, right_v = m.provider_b, vb, m.provider_a, va
@@ -303,7 +303,7 @@ class Scheduler:
             item = rng.choice(items)
             va = self._voice_for(m.provider_a, language, chosen_gender)
             vb = self._voice_for(m.provider_b, language, chosen_gender)
-            position_seed = rng.getrandbits(63)
+            position_seed = rng.getrandbits(31)
             swap = assign_sides(m.provider_a, m.provider_b, position_seed)
             if swap:
                 left_p, left_v, right_p, right_v = m.provider_b, vb, m.provider_a, va
