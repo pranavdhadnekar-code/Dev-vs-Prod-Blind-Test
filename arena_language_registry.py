@@ -29,6 +29,15 @@ _EL_M = ("Liam", "Dan")
 _EL_F = ("Laura", "Jessica")
 _DG_M = ("aura-2-apollo-en", "aura-2-orion-en")
 _DG_F = ("aura-2-thalia-en", "aura-2-helena-en")
+# Deepgram Aura-2 native voice ids per language (es = Peninsular/Spain,
+# fr = France). French currently ships a single voice per gender.
+_DEEPGRAM: Dict[str, VoicePool] = {
+    "en-US": v(*_DG_M, *_DG_F),
+    "en-IN": v(*_DG_M, *_DG_F),
+    "en-UK": v(*_DG_M, *_DG_F),
+    "es-ES": v("aura-2-nestor-es", "aura-2-alvaro-es", "aura-2-carina-es", "aura-2-diana-es"),
+    "fr-FR": {"male": ["aura-2-hector-fr"], "female": ["aura-2-agathe-fr"]},
+}
 _CT_M = ("Professional Man", "Classy British Man")
 _CT_F = ("Conversational Lady", "British Lady")
 _OAI_M = ("onyx", "echo")
@@ -121,17 +130,43 @@ def _multilingual(pool: VoicePool) -> Dict[str, VoicePool]:
     return {lang: pool for lang in ARENA_LANGUAGES}
 
 
+_ALL_LANGS = set(ARENA_LANGUAGES)
+
+# Genuine per-provider language support for the arena's 10 languages.
+# Two cases drive this:
+#   * Voice-agnostic models (ElevenLabs/Cartesia/OpenAI) auto-detect language
+#     from text, so coverage = the MODEL's supported languages.
+#   * Voice-locked providers (Deepgram/Google/Azure/Polly/Sarvam/Murf) can only
+#     do a language if we have a NATIVE voice id for it; reused English/Hindi
+#     voices reading another script are excluded.
+# Sources (Jun 2026): ElevenLabs Flash v2.5 (32 langs), Deepgram Aura-2
+# (en/es/de/fr/nl/it/ja — en/fr/es voice ids configured here), Cartesia
+# Sonic 3.5 (42 langs incl. all Indian languages), OpenAI gpt-4o-mini-tts
+# (Whisper language set), Sarvam Bulbul v3 (Indian languages + Indian English).
+PROVIDER_SUPPORTED_LANGUAGES: Dict[str, set] = {
+    "omni_tts": set(_ALL_LANGS),            # Murf native voices for all
+    "murf_gen2": set(_ALL_LANGS),           # Murf native voices for all
+    "elevenlabs_v3": {"en-US", "en-IN", "en-UK", "hi-IN", "ta-IN", "fr-FR", "es-ES"},
+    "deepgram_aura2": {"en-US", "en-IN", "en-UK", "fr-FR", "es-ES"},  # native en/fr/es voices
+    "cartesia_sonic3": set(_ALL_LANGS),     # Sonic 3.5 covers all 10
+    "openai": set(_ALL_LANGS),              # multilingual, voice-agnostic
+    "sarvam_bulbul_v3": {"en-IN", "hi-IN", "bn-IN", "ta-IN", "mr-IN", "ml-IN"},
+    "google_tts": set(_ALL_LANGS),          # native voices per language
+    "azure_tts": set(_ALL_LANGS),           # native voices per language
+    "amazon_polly": {"en-US", "en-IN", "en-UK", "hi-IN", "fr-FR", "es-ES"},  # no native bn/ta/mr/ml
+}
+
+
 def build_provider_languages(omni_dev: bool) -> Dict[str, Dict[str, VoicePool]]:
     murf_omni = _MURF_DEV_FALCON if omni_dev else _MURF_PROD
     el = v(*_EL_M, *_EL_F)
-    dg = v(*_DG_M, *_DG_F)
     ct = v(*_CT_M, *_CT_F)
     oai = v(*_OAI_M, *_OAI_F)
-    return {
+    raw = {
         "omni_tts": dict(murf_omni),
         "murf_gen2": dict(_MURF_PROD),
         "elevenlabs_v3": _multilingual(el),
-        "deepgram_aura2": _multilingual(dg),
+        "deepgram_aura2": dict(_DEEPGRAM),
         "cartesia_sonic3": _multilingual(ct),
         "openai": _multilingual(oai),
         "sarvam_bulbul_v3": dict(_SARVAM),
@@ -139,6 +174,12 @@ def build_provider_languages(omni_dev: bool) -> Dict[str, Dict[str, VoicePool]]:
         "azure_tts": dict(_AZURE),
         "amazon_polly": dict(_POLLY),
     }
+    # Restrict each provider to genuinely supported languages.
+    out: Dict[str, Dict[str, VoicePool]] = {}
+    for pid, pools in raw.items():
+        allowed = PROVIDER_SUPPORTED_LANGUAGES.get(pid, _ALL_LANGS)
+        out[pid] = {lang: pool for lang, pool in pools.items() if lang in allowed}
+    return out
 
 
 def flatten_voice_ids(pools: Dict[str, VoicePool]) -> List[str]:
