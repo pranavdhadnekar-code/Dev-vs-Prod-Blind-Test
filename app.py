@@ -146,7 +146,7 @@ def _init_state():
     ss.setdefault("pending_battle", None)  # (language, gender) awaiting synthesis
     ss.setdefault("gen_error", None)
     ss.setdefault("arena_language", None)
-    ss.setdefault("arena_gender", "Any")
+    ss.setdefault("arena_gender", "Male")
     ss.setdefault("provider_health", None)
     ss.setdefault("provider_health_at", 0.0)
 
@@ -258,7 +258,7 @@ def generate_battle(language: str, gender: str, on_step=None):
         return
 
     _step(Battle.STEP_SCHEDULE)
-    g = None if gender == "Any" else gender.lower()
+    g = gender.lower()
     try:
         plan = st.session_state.scheduler.next_battle(language, gender=g)
     except SchedulerError as e:
@@ -345,9 +345,14 @@ def battle_page():
             if st.session_state.arena_language in languages else 0,
         )
     with c2:
+        _stored_gender = st.session_state.arena_gender
+        _gender_index = (
+            Battle.VOICE_GENDER_OPTIONS.index(_stored_gender)
+            if _stored_gender in Battle.VOICE_GENDER_OPTIONS else 0
+        )
         gender = st.selectbox(
             Battle.VOICE_GENDER, Battle.VOICE_GENDER_OPTIONS,
-            index=Battle.VOICE_GENDER_OPTIONS.index(st.session_state.arena_gender),
+            index=_gender_index,
         )
     with c3:
         st.write("")

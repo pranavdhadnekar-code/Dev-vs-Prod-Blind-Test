@@ -34,7 +34,7 @@ class Battle:
     )
     LANGUAGE = "Language"
     VOICE_GENDER = "Voice gender"
-    VOICE_GENDER_OPTIONS = ["Any", "Male", "Female"]
+    VOICE_GENDER_OPTIONS = ["Male", "Female"]
     START = "Start comparison"
     SETUP = (
         "{lang} · {n} providers compared to " + ANCHOR + " · both clips are "
