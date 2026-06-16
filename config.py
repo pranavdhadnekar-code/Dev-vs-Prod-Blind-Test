@@ -540,13 +540,13 @@ TTS_PROVIDERS = {
         voice_info=dict(_VOICE_INFO),
     ),
     "elevenlabs_v3": TTSConfig(
-        name="ElevenLabs v3",
+        name="ElevenLabs Flash 2.5",
         api_key_env="ELEVENLABS_API_KEY",
         base_url=_ELEVENLABS_URL,
         supported_voices=list(_ELEVENLABS_VOICES.keys()),
         max_chars=5000,
         supports_streaming=False,
-        model_name="eleven_v3",
+        model_name="eleven_flash_v2_5",
         voice_info=dict(_ELEVENLABS_VOICES),
     ),
     "deepgram_aura2": TTSConfig(
@@ -560,13 +560,13 @@ TTS_PROVIDERS = {
         voice_info=dict(_DEEPGRAM_AURA2_VOICES),
     ),
     "cartesia_sonic3": TTSConfig(
-        name="Cartesia Sonic 3",
+        name="Cartesia Sonic 3.5",
         api_key_env="CARTESIA_API_KEY",
         base_url=_CARTESIA_URL,
         supported_voices=list(_CARTESIA_VOICES.keys()),
         max_chars=3000,
         supports_streaming=True,
-        model_name="sonic-3",
+        model_name="sonic-3.5",
         voice_info=dict(_CARTESIA_VOICES),
     ),
     "openai": TTSConfig(

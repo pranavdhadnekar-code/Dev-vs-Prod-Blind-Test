@@ -59,6 +59,7 @@ class Battle:
     SAMPLE_A = "Sample A"
     SAMPLE_B = "Sample B"
     LISTENED = "I listened to {sample}"
+    DOWNLOAD = "Download"
     COMMENT = "Add a note (optional)"
     VOTE_GATE = "Listen to both clips and check both boxes to vote."
     VOTE_A = "Sample A is better"
@@ -89,6 +90,13 @@ class Leaderboard:
     COL_ANCHOR_LOSSES = f"{ANCHOR} loses"
     COL_LOSES_TO = "Loses to"
     LANG_SUMMARY = "{n} comparisons · {ties} ties"
+    BATTLES_BY_COMPETITOR = "Comparisons run: {breakdown}"
+    SCHEDULER_NOTE = (
+        f"Each comparison is {ANCHOR} vs one competitor. Only providers that pass "
+        "the health check (see sidebar) are scheduled — failed or unconfigured "
+        "providers are skipped."
+    )
+    COL_BATTLES_RUN = "Battles run"
     LANG_HEAD_TO_HEAD = f"{ANCHOR} vs each provider"
     INFERRED_NOTE = (
         f"Rankings against {ANCHOR} come straight from your votes. Rankings "

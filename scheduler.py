@@ -159,6 +159,11 @@ class Scheduler:
             if target_ci_width is None else target_ci_width
         )
         self.healthy_providers: Optional[Set[str]] = None
+        # Round-robin rotation state (per language): remaining matchup keys for
+        # the current round + the eligible set the round was built from.
+        self._rotation: Dict[str, List[tuple]] = {}
+        self._rotation_pool: Dict[str, Set[tuple]] = {}
+        self._rotation_last: Dict[str, tuple] = {}
 
     def available_languages(self, configured_only: bool = True) -> List[str]:
         if self.healthy_providers is not None:
@@ -185,32 +190,44 @@ class Scheduler:
             competitors = [c for c in competitors if c in self.healthy_providers]
         return self.strategy.matchups(language, anchor, competitors)
 
-    def _matchup_weight(self, m: Matchup, uncertainty: Optional[Dict[str, float]]) -> float:
-        """Adaptive weight for a matchup.
-
-        `uncertainty` maps competitor_id -> a positive number that grows with how
-        much we still want to sample it (e.g. CI width in excess of the target,
-        and/or closeness to the anchor). Absent data => uniform weight.
-        """
-        if not uncertainty:
-            return 1.0
-        comp = m.provider_b if m.is_anchor_pair else m.provider_b
-        if not m.is_anchor_pair:
-            return 1.0
-        return max(float(uncertainty.get(comp, 1.0)), 1e-6)
+    @staticmethod
+    def _matchup_key(m: Matchup) -> tuple:
+        return (m.provider_a, m.provider_b, m.is_anchor_pair)
 
     def _select_matchup(
         self,
+        language: str,
         matchups: List[Matchup],
         rng: random.Random,
-        uncertainty: Optional[Dict[str, float]] = None,
     ) -> Matchup:
+        """Round-robin matchup selection.
+
+        Every eligible matchup (anchor vs each competitor) is served exactly once
+        per round before any repeats, so providers rotate evenly instead of being
+        starved by adaptive weighting. The within-round order is shuffled for
+        fairness, and the round rebuilds automatically when the eligible set
+        changes (e.g. a provider's health flips).
+        """
         if not matchups:
             raise SchedulerError("No eligible matchups for this language.")
-        if self.adaptive and uncertainty:
-            weights = [self._matchup_weight(m, uncertainty) for m in matchups]
-            return rng.choices(matchups, weights=weights, k=1)[0]
-        return rng.choice(matchups)
+
+        by_key = {self._matchup_key(m): m for m in matchups}
+        eligible = set(by_key)
+
+        queue = [k for k in self._rotation.get(language, []) if k in eligible]
+        if self._rotation_pool.get(language) != eligible or not queue:
+            queue = list(eligible)
+            rng.shuffle(queue)
+            # Avoid an immediate repeat across the round boundary when possible.
+            last = self._rotation_last.get(language)
+            if len(queue) > 1 and queue[0] == last:
+                queue.append(queue.pop(0))
+            self._rotation_pool[language] = eligible
+
+        key = queue.pop(0)
+        self._rotation[language] = queue
+        self._rotation_last[language] = key
+        return by_key[key]
 
     def _voice_for(self, provider: str, language: str, gender: str) -> str:
         v = config.representative_voice(provider, language, gender)
@@ -228,10 +245,10 @@ class Scheduler:
         language: str,
         gender: Optional[str] = None,
         item_id: Optional[str] = None,
-        uncertainty: Optional[Dict[str, float]] = None,
+        uncertainty: Optional[Dict[str, float]] = None,  # deprecated: ignored (round-robin)
         rng: Optional[random.Random] = None,
     ) -> BattlePlan:
-        """Schedule one battle for `language`."""
+        """Schedule one battle for `language` (round-robin over competitors)."""
         rng = rng or self._rng
 
         matchups = self.matchups_for_language(language)
@@ -239,7 +256,7 @@ class Scheduler:
             raise SchedulerError(
                 f"Language '{language}' has no configured competitors for the anchor."
             )
-        m = self._select_matchup(matchups, rng, uncertainty)
+        m = self._select_matchup(language, matchups, rng)
 
         chosen_gender = gender or rng.choice(["male", "female"])
 

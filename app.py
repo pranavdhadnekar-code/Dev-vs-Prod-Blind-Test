@@ -59,7 +59,7 @@ def _load_css():
 
 
 def _inject_audix_player_chrome():
-    """Hide speed, trim/cut, and download controls in streamlit-advanced-audio players."""
+    """Hide speed and trim controls in streamlit-advanced-audio players (keep download)."""
     st.html(
         """
         <script>
@@ -67,7 +67,6 @@ def _inject_audix_player_chrome():
           const HIDE_CSS = `
             .ant-select.w-20 { display: none !important; }
             .flex.justify-between.items-center > .flex.space-x-3 { display: none !important; }
-            .flex-1.flex.justify-end { display: none !important; }
           `;
 
           function patchAudixIframes(root) {
@@ -111,8 +110,12 @@ _BATTLE_WAVEFORM = WaveSurferOptions(
 )
 
 
-def _battle_player(audio_bytes: bytes, key: str) -> None:
-    """Waveform audio player for blind battle clips (WAV bytes from normalization)."""
+def _battle_player(audio_bytes: bytes, key: str, filename: str = "sample.wav") -> None:
+    """Waveform audio player for blind battle clips (WAV bytes from normalization).
+
+    The download is a quiet, right-aligned tertiary (link-style) control so it
+    stays secondary to the vote CTAs.
+    """
     audix(
         audio_bytes,
         format="audio/wav",
@@ -120,6 +123,18 @@ def _battle_player(audio_bytes: bytes, key: str) -> None:
         autoplay=False,
         key=key,
     )
+    _, dl = st.columns([3, 1])
+    with dl:
+        st.download_button(
+            Battle.DOWNLOAD,
+            data=audio_bytes,
+            file_name=filename,
+            mime="audio/wav",
+            key=f"download_{key}",
+            type="tertiary",
+            icon=":material/download:",
+            use_container_width=True,
+        )
 
 
 # --- session state -----------------------------------------------------------
@@ -242,17 +257,10 @@ def generate_battle(language: str, gender: str, on_step=None):
         st.session_state.gen_error = msg
         return
 
-    uncertainty = None
-    if config.ENGINE_CONFIG.get("adaptive_sampling"):
-        try:
-            uncertainty = reporting.ArenaReport(db).adaptive_uncertainty(language)
-        except Exception:
-            uncertainty = None
-
     _step(Battle.STEP_SCHEDULE)
     g = None if gender == "Any" else gender.lower()
     try:
-        plan = st.session_state.scheduler.next_battle(language, gender=g, uncertainty=uncertainty)
+        plan = st.session_state.scheduler.next_battle(language, gender=g)
     except SchedulerError as e:
         st.session_state.gen_error = str(e)
         return
@@ -405,14 +413,22 @@ def battle_page():
     left_col, right_col = st.columns(2)
     with left_col:
         st.markdown(f"##### {Battle.SAMPLE_A}")
-        _battle_player(st.session_state.clips["left"], key=f"battle_player_a_{player_key}")
+        _battle_player(
+            st.session_state.clips["left"],
+            key=f"battle_player_a_{player_key}",
+            filename=f"sample_a_{player_key[:8]}.wav",
+        )
         st.checkbox(
             Battle.LISTENED.format(sample=Battle.SAMPLE_A),
             key=f"played_left_{player_key}",
         )
     with right_col:
         st.markdown(f"##### {Battle.SAMPLE_B}")
-        _battle_player(st.session_state.clips["right"], key=f"battle_player_b_{player_key}")
+        _battle_player(
+            st.session_state.clips["right"],
+            key=f"battle_player_b_{player_key}",
+            filename=f"sample_b_{player_key[:8]}.wav",
+        )
         st.checkbox(
             Battle.LISTENED.format(sample=Battle.SAMPLE_B),
             key=f"played_right_{player_key}",
@@ -524,6 +540,14 @@ def leaderboard_page():
     for tab, (lang, fit) in zip(tabs, fits.items()):
         with tab:
             st.caption(Leaderboard.LANG_SUMMARY.format(n=fit.n_comparisons, ties=fit.n_ties))
+            battle_counts = db.get_competitor_battle_counts(lang)
+            if battle_counts:
+                breakdown = ", ".join(
+                    f"{_name(pid)} {n}" for pid, n in sorted(
+                        battle_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+                )
+                st.caption(Leaderboard.BATTLES_BY_COMPETITOR.format(breakdown=breakdown))
+            st.caption(Leaderboard.SCHEDULER_NOTE)
             lb = report.language_leaderboard(fit)
             ldf = pd.DataFrame([{
                 Leaderboard.COL_PROVIDER: r["provider_name"] + (" ⚓" if r["is_anchor"] else ""),

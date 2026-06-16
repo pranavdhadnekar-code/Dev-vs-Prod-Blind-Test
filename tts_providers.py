@@ -1152,10 +1152,10 @@ class ElevenLabsV3TTSProvider(TTSProvider):
             "Content-Type": "application/json"
         }
         
-        # ElevenLabs v3 API payload structure
+        # ElevenLabs Flash 2.5 API payload structure
         payload = {
             "text": request.text,
-            "model_id": "eleven_v3",
+            "model_id": "eleven_flash_v2_5",
             "voice_settings": {
                 "stability": 0.5,
                 "similarity_boost": 0.75
@@ -1187,7 +1187,7 @@ class ElevenLabsV3TTSProvider(TTSProvider):
                             metadata=_wav_meta({
                                 "voice": request.voice,
                                 "voice_id": voice_id,
-                                "model": "eleven_v3",
+                                "model": "eleven_flash_v2_5",
                                 "provider": self.provider_id,
                             }),
                         )
@@ -1464,10 +1464,10 @@ class CartesiaTurboProvider(CartesiaTTSProvider):
         super().__init__("cartesia_turbo", "sonic-turbo")
 
 class CartesiaSonic3Provider(CartesiaTTSProvider):
-    """Cartesia Sonic 3.0 TTS provider"""
-    
+    """Cartesia Sonic 3.5 TTS provider"""
+
     def __init__(self):
-        super().__init__("cartesia_sonic3", "sonic-3")
+        super().__init__("cartesia_sonic3", "sonic-3.5")
 
 class SarvamTTSProvider(TTSProvider):
     """Sarvam AI TTS provider implementation"""

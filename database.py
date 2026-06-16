@@ -1118,6 +1118,21 @@ class BenchmarkDatabase:
                     cell["b_wins"] += 1
         return grid
 
+    def get_competitor_battle_counts(self, language: str = None) -> Dict[str, int]:
+        """How many battles were run against each competitor (from battles table)."""
+        conn = self._connect()
+        cursor = conn.cursor()
+        if language:
+            cursor.execute(
+                'SELECT competitor, COUNT(*) FROM battles WHERE language = ? GROUP BY competitor',
+                (language,),
+            )
+        else:
+            cursor.execute('SELECT competitor, COUNT(*) FROM battles GROUP BY competitor')
+        rows = cursor.fetchall()
+        conn.close()
+        return {comp: int(n) for comp, n in rows if comp}
+
     def get_languages_with_votes(self) -> List[str]:
         conn = self._connect()
         cursor = conn.cursor()
