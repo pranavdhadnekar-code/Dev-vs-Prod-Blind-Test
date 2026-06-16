@@ -232,11 +232,11 @@ class Scheduler:
     def _voice_for(self, provider: str, language: str, gender: str) -> str:
         v = config.representative_voice(provider, language, gender)
         if v is None:
-            other = "female" if gender == "male" else "male"
-            v = config.representative_voice(provider, language, other)
-        if v is None:
+            cfg = config.TTS_PROVIDERS.get(provider)
+            provider_label = cfg.name if cfg else provider
+            lang_label = config.get_language_display(language)
             raise SchedulerError(
-                f"No representative voice for {provider} in {language}."
+                f"{provider_label} does not support {gender} voices in {lang_label}."
             )
         return v
 
