@@ -6,10 +6,13 @@ quality distinguishes them. Votes (Left / Right / About the same) feed a
 rating engine with bootstrap confidence intervals.
 """
 import asyncio
+import csv
+import io
 import json
 import os
 import re
 import time
+import zipfile
 from datetime import datetime
 
 import streamlit as st
@@ -143,6 +146,7 @@ def _init_state():
     ss.setdefault("scheduler", Scheduler())
     ss.setdefault("battle", None)          # current BattlePlan
     ss.setdefault("clips", {})             # {'left': bytes, 'right': bytes}
+    ss.setdefault("falcon_raw", None)      # {'audio': bytes, 'ext': str} raw anchor clip
     ss.setdefault("pending_battle", None)  # (language, gender) awaiting synthesis
     ss.setdefault("gen_error", None)
     ss.setdefault("arena_language", None)
@@ -295,6 +299,22 @@ def generate_battle(language: str, gender: str, on_step=None):
 
     st.session_state.battle = plan
     st.session_state.clips = {"left": nl.audio, "right": nr.audio}
+
+    # Stash the RAW anchor (Falcon) audio so we can export it later if Falcon
+    # loses this battle. Raw model output (not the normalized clip) is kept.
+    anchor = config.anchor_provider()
+    falcon_side = (
+        "left" if plan.left_provider == anchor
+        else "right" if plan.right_provider == anchor
+        else None
+    )
+    if falcon_side:
+        raw = (res_left if falcon_side == "left" else res_right).audio_data
+        ext = "wav" if raw and raw[:4] == b"RIFF" else "mp3"
+        st.session_state.falcon_raw = {"audio": raw, "ext": ext, "side": falcon_side}
+    else:
+        st.session_state.falcon_raw = None
+
     st.session_state.battle_setup = f"{language}:{gender}"
     st.session_state["comment_text"] = ""
 
@@ -309,12 +329,61 @@ def record_vote(outcome: str):
                    comment_deanonymized=deanon,
                    rater_session=session_manager.get_session_id(),
                    location=_location())
+    _maybe_store_falcon_failure(plan, outcome, comment_deanonymized=deanon)
     lang = st.session_state.arena_language
     gender = st.session_state.arena_gender
     st.session_state.battle = None
     st.session_state.clips = {}
+    st.session_state.falcon_raw = None
     st.session_state.pending_battle = (lang, gender)
     st.toast(Battle.VOTE_SAVED)
+
+
+def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = ""):
+    """Persist the raw Falcon clip + text when Falcon lost this battle.
+
+    Falcon "failed" = the competitor was preferred (ties/wins are skipped).
+    Only stored when the anchor (Falcon) was actually one of the two sides.
+    """
+    falcon_raw = st.session_state.get("falcon_raw")
+    if not falcon_raw or not falcon_raw.get("audio"):
+        return
+    norm = {"a": "A", "left": "A", "b": "B", "right": "B",
+            "tie": "tie", "same": "tie"}.get((outcome or "").strip().lower())
+    if norm not in ("A", "B"):
+        return  # ties are not failures
+
+    falcon_side = falcon_raw.get("side")
+    falcon_lost = (falcon_side == "left" and norm == "B") or \
+                  (falcon_side == "right" and norm == "A")
+    if not falcon_lost:
+        return
+
+    if falcon_side == "left":
+        falcon_voice, competitor, competitor_voice = (
+            plan.left_voice, plan.right_provider, plan.right_voice)
+    else:
+        falcon_voice, competitor, competitor_voice = (
+            plan.right_voice, plan.left_provider, plan.left_voice)
+
+    try:
+        db.save_falcon_failure(
+            battle_id=plan.battle_id,
+            language=plan.language,
+            item_id=plan.item_id,
+            item_text=plan.item_text,
+            falcon_voice=falcon_voice,
+            competitor_provider=competitor,
+            competitor_voice=competitor_voice,
+            outcome=norm,
+            audio_bytes=falcon_raw["audio"],
+            audio_format=falcon_raw.get("ext", "wav"),
+            rater_session=session_manager.get_session_id(),
+            comment=comment_deanonymized,
+        )
+    except Exception:
+        # Export capture must never block vote recording.
+        pass
 
 
 def _request_retry():
@@ -368,6 +437,7 @@ def battle_page():
     if plan and stored_setup and stored_setup != setup_key:
         st.session_state.battle = None
         st.session_state.clips = {}
+        st.session_state.falcon_raw = None
         st.session_state.pending_battle = None
         plan = None
     elif plan and not stored_setup:
@@ -630,11 +700,87 @@ def comments_page():
                     st.error(Comments.SUMMARY_FAIL.format(error=e))
 
 
+def _provider_display(pid: str) -> str:
+    cfg = config.TTS_PROVIDERS.get(pid)
+    return cfg.name if cfg else pid
+
+
+def _fname_safe(value: str) -> str:
+    """Filesystem-safe token (no path separators / spaces / colons)."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "")).strip("-") or "unknown"
+
+
+def _build_falcon_failures_zip(rows: list) -> bytes:
+    """Build an in-memory ZIP of raw Falcon failure clips + manifests."""
+    manifest_cols = [
+        "battle_id", "language", "item_id", "text", "falcon_voice",
+        "competitor_provider", "competitor_voice", "outcome",
+        "comment", "created_at", "audio_file",
+    ]
+    csv_buf = io.StringIO()
+    writer = csv.DictWriter(csv_buf, fieldnames=manifest_cols)
+    writer.writeheader()
+    jsonl_lines: list[str] = []
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        seen: dict[str, int] = {}
+        for rec in rows:
+            lang = rec.get("language") or "unknown"
+            ext = rec.get("audio_format") or "wav"
+            ts = _fname_safe(rec.get("created_at"))
+            voice = _fname_safe(rec.get("falcon_voice"))
+            bid = _fname_safe(rec.get("battle_id"))
+            stem = f"{ts}__{bid}__{voice}"
+            # Guard against any duplicate stems.
+            seen[stem] = seen.get(stem, 0) + 1
+            if seen[stem] > 1:
+                stem = f"{stem}__{seen[stem]}"
+            audio_file = f"audio/{_fname_safe(lang)}/{stem}.{ext}"
+
+            audio = rec.get("audio_bytes") or b""
+            if audio:
+                zf.writestr(f"falcon_failures/{audio_file}", audio)
+
+            row = {
+                "battle_id": rec.get("battle_id", ""),
+                "language": lang,
+                "item_id": rec.get("item_id", ""),
+                "text": rec.get("item_text", ""),
+                "falcon_voice": rec.get("falcon_voice", ""),
+                "competitor_provider": _provider_display(rec.get("competitor_provider", "")),
+                "competitor_voice": rec.get("competitor_voice", ""),
+                "outcome": rec.get("outcome", ""),
+                "comment": rec.get("comment") or "",
+                "created_at": str(rec.get("created_at", "")),
+                "audio_file": audio_file if audio else "",
+            }
+            writer.writerow(row)
+            jsonl_lines.append(json.dumps(row, ensure_ascii=False, default=str))
+
+        zf.writestr("falcon_failures/failures.csv", csv_buf.getvalue())
+        zf.writestr("falcon_failures/failures.jsonl", "\n".join(jsonl_lines))
+        zf.writestr(
+            "falcon_failures/README.txt",
+            "Falcon failure export\n"
+            "=====================\n\n"
+            "Each audio file is the RAW Falcon 2 model output for a battle where\n"
+            "the competitor was preferred (Falcon lost the vote). Ties and wins\n"
+            "are not included.\n\n"
+            "audio/<language>/<created_at>__<battle_id>__<falcon_voice>.<wav|mp3>\n"
+            "failures.csv / failures.jsonl map each clip to its text, deanonymized\n"
+            "rater comment (if any), and metadata (competitor it lost to, voices,\n"
+            "outcome, timestamp).\n",
+        )
+    return buf.getvalue()
+
+
 def export_page():
     st.title(Export.TITLE)
     report = reporting.ArenaReport(db)
     if not db.get_languages_with_votes():
         st.info(Export.NO_DATA)
+        _falcon_failures_section()
         return
 
     with st.spinner(Export.BUILDING):
@@ -681,6 +827,57 @@ def export_page():
             "n_votes": r["n_votes"], "code_version": r["code_version"],
             "created_at": r["created_at"],
         } for r in runs]), use_container_width=True, hide_index=True)
+
+    _falcon_failures_section()
+
+
+def _falcon_failures_section():
+    """Download raw Falcon clips + text for battles where Falcon lost."""
+    st.markdown("---")
+    st.markdown(f"### {Export.FAILURES_TITLE}")
+    st.caption(Export.FAILURES_HELP)
+
+    total = db.count_falcon_failures()
+    if not total:
+        st.info(Export.FAILURES_EMPTY)
+        return
+
+    langs = sorted({r["language"] for r in db.get_falcon_failures() if r.get("language")})
+    options = [Export.FAILURES_ALL_LANGS] + langs
+    choice = st.selectbox(
+        Export.FAILURES_LANGUAGE,
+        options,
+        format_func=lambda o: o if o == Export.FAILURES_ALL_LANGS
+        else config.get_language_display(o),
+        key="falcon_failures_lang",
+    )
+    lang_filter = None if choice == Export.FAILURES_ALL_LANGS else choice
+    count = db.count_falcon_failures(lang_filter)
+    st.caption(Export.FAILURES_COUNT.format(n=count))
+
+    if not count:
+        return
+
+    suffix = "all" if lang_filter is None else _fname_safe(lang_filter)
+    if st.button(Export.FAILURES_PREPARE, use_container_width=True):
+        with st.spinner(Export.BUILDING):
+            rows = db.get_falcon_failures(lang_filter, with_audio=True)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            st.session_state["falcon_failures_zip"] = {
+                "bytes": _build_falcon_failures_zip(rows),
+                "name": f"falcon_failures_{suffix}_{ts}.zip",
+                "filter": choice,
+            }
+
+    prepared = st.session_state.get("falcon_failures_zip")
+    if prepared and prepared.get("filter") == choice:
+        st.download_button(
+            Export.FAILURES_DOWNLOAD,
+            prepared["bytes"],
+            file_name=prepared["name"],
+            mime="application/zip",
+            use_container_width=True,
+        )
 
 
 def _status_badge(state: str) -> tuple[str, str]:

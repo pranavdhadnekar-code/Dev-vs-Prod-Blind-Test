@@ -19,6 +19,7 @@ a thin shim rewrites placeholders/DDL for Postgres so call sites stay identical.
 import sqlite3
 import json
 import os
+import base64
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import asdict
@@ -325,9 +326,34 @@ class BenchmarkDatabase:
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS falcon_failures (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                battle_id TEXT,
+                language TEXT,
+                item_id TEXT,
+                item_text TEXT,
+                falcon_voice TEXT,
+                competitor_provider TEXT,
+                competitor_voice TEXT,
+                outcome TEXT,                 -- 'A'/'B' vote (competitor preferred)
+                audio_format TEXT,            -- 'wav' | 'mp3'
+                audio_base64 TEXT,            -- raw Falcon model output, base64
+                rater_session TEXT,
+                comment TEXT,                 -- deanonymized rater comment (if any)
+                created_at DATETIME
+            )
+        ''')
+
+        try:
+            cursor.execute('ALTER TABLE falcon_failures ADD COLUMN comment TEXT')
+        except Exception:
+            pass
+
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_battle ON votes(battle_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_language ON votes(language)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_battles_language ON battles(language)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_falcon_failures_language ON falcon_failures(language)')
 
         conn.commit()
         conn.close()
@@ -1140,6 +1166,75 @@ class BenchmarkDatabase:
         langs = [r[0] for r in cursor.fetchall()]
         conn.close()
         return langs
+
+    def save_falcon_failure(self, battle_id: str, language: str, item_id: str,
+                            item_text: str, falcon_voice: str,
+                            competitor_provider: str, competitor_voice: str,
+                            outcome: str, audio_bytes: bytes,
+                            audio_format: str = "wav",
+                            rater_session: str = "default",
+                            comment: str = "") -> bool:
+        """Persist a lost Falcon battle: raw audio (base64) + text + metadata."""
+        audio_b64 = base64.b64encode(audio_bytes or b"").decode("ascii")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO falcon_failures
+            (battle_id, language, item_id, item_text, falcon_voice,
+             competitor_provider, competitor_voice, outcome, audio_format,
+             audio_base64, rater_session, comment, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ''', (
+            battle_id, language, item_id, item_text, falcon_voice,
+            competitor_provider, competitor_voice, outcome, audio_format,
+            audio_b64, rater_session, comment or "", datetime.now(),
+        ))
+        conn.commit()
+        conn.close()
+        return True
+
+    def count_falcon_failures(self, language: str = None) -> int:
+        """Number of stored Falcon failures (optionally filtered by language)."""
+        conn = self._connect()
+        cursor = conn.cursor()
+        if language:
+            cursor.execute(
+                'SELECT COUNT(*) FROM falcon_failures WHERE language = ?', (language,))
+        else:
+            cursor.execute('SELECT COUNT(*) FROM falcon_failures')
+        n = cursor.fetchone()[0]
+        conn.close()
+        return int(n or 0)
+
+    def get_falcon_failures(self, language: str = None,
+                            with_audio: bool = False) -> List[Dict[str, Any]]:
+        """Stored Falcon failures. Set with_audio to include decoded audio bytes.
+
+        Each row includes: battle_id, language, item_id, item_text, falcon_voice,
+        competitor_provider, competitor_voice, outcome, audio_format, created_at,
+        and (when with_audio) audio_bytes.
+        """
+        audio_col = ", audio_base64" if with_audio else ""
+        conn = self._connect(dict_rows=True)
+        cursor = conn.cursor()
+        sql = (
+            "SELECT battle_id, language, item_id, item_text, falcon_voice, "
+            "competitor_provider, competitor_voice, outcome, audio_format, "
+            "comment, created_at" + audio_col + " FROM falcon_failures"
+        )
+        if language:
+            cursor.execute(sql + " WHERE language = ? ORDER BY created_at", (language,))
+        else:
+            cursor.execute(sql + " ORDER BY created_at")
+        rows = cursor.fetchall()
+        conn.close()
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            rec = dict(row)
+            if with_audio:
+                rec["audio_bytes"] = base64.b64decode(rec.pop("audio_base64") or "")
+            out.append(rec)
+        return out
 
     def get_vote_counts(self) -> Dict[str, int]:
         conn = self._connect()

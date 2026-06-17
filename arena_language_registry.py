@@ -48,12 +48,10 @@ _MURF_PROD: Dict[str, VoicePool] = {
     "en-IN": v("en-IN-aarav", "en-IN-eashwar", "en-IN-alia", "en-IN-isha"),
     "en-UK": v("en-UK-aiden", "en-UK-theo", "en-UK-heidi", "en-UK-amber"),
     "hi-IN": v("hi-IN-shaan", "hi-IN-rahul", "hi-IN-shweta", "hi-IN-ayushi"),
-    "bn-IN": v("bn-IN-abhik", "bn-IN-arnab", "bn-IN-anwesha", "bn-IN-ishani"),
-    "ta-IN": v("ta-IN-suresh", "ta-IN-sarvesh", "ta-IN-iniya", "ta-IN-abirami"),
+    "bn-IN": {"male": ["bn-IN-abhik"], "female": ["bn-IN-anwesha", "bn-IN-ishani"]},
+    "ta-IN": {"male": ["ta-IN-sarvesh"], "female": ["ta-IN-iniya", "ta-IN-abirami"]},
     "fr-FR": v("fr-FR-maxime", "fr-FR-axel", "fr-FR-justine", "fr-FR-louise"),
-    "es-ES": v("es-ES-enrique", "es-MX-alejandro", "es-ES-carla", "es-ES-carmen"),
-    "mr-IN": v("mr-IN-abhishek", "mr-IN-harshad", "mr-IN-prajakta", "mr-IN-rujuta"),
-    "ml-IN": v("ml-IN-vishnu", "ml-IN-madhavan", "ml-IN-sreelakshmi", "ml-IN-nimisha"),
+    "es-ES": v("es-ES-enrique", "es-ES-javier", "es-ES-carla", "es-ES-carmen"),
 }
 
 _MURF_DEV_FALCON: Dict[str, VoicePool] = {

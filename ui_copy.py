@@ -141,6 +141,18 @@ class Export:
     SNAPSHOT_SAVED = "Snapshot saved ({run_id})"
     TECH_DETAILS = "Technical details"
     RECENT = "Recent snapshots"
+    FAILURES_TITLE = "Falcon failures (lost battles)"
+    FAILURES_HELP = (
+        "Download the raw Falcon 2 audio and text for battles where the "
+        "competitor was preferred. Only failures recorded after this feature "
+        "was deployed are included."
+    )
+    FAILURES_EMPTY = "No Falcon losses recorded yet."
+    FAILURES_ALL_LANGS = "All languages"
+    FAILURES_LANGUAGE = "Language"
+    FAILURES_COUNT = "{n} failing clip(s) ready to export."
+    FAILURES_PREPARE = "Prepare failures (.zip)"
+    FAILURES_DOWNLOAD = "Download failures (.zip)"
 
 
 class Health:
