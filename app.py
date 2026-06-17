@@ -395,6 +395,45 @@ def _request_retry():
     )
 
 
+def _eligible_competitors(language: str, health: dict) -> list[str]:
+    """Healthy competitors that support the selected language (excludes anchor)."""
+    return provider_health.competitors_for_language(language, health)
+
+
+def _competitor_multiselect(language: str, health: dict) -> list[str]:
+    """Multi-select of eligible competitors; all selected by default per language."""
+    eligible = _eligible_competitors(language, health)
+    widget_key = f"arena_competitors_{language}"
+    prev_key = f"arena_competitors_eligible_{language}"
+    prev_eligible = set(st.session_state.get(prev_key, []))
+    cur_eligible = set(eligible)
+
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = list(eligible)
+    else:
+        selected = set(st.session_state[widget_key]) & cur_eligible
+        # Auto-select newly eligible providers (e.g. health recovered).
+        if prev_eligible:
+            selected |= cur_eligible - prev_eligible
+        if not selected:
+            selected = cur_eligible
+        st.session_state[widget_key] = [c for c in eligible if c in selected]
+
+    st.session_state[prev_key] = list(eligible)
+
+    return st.multiselect(
+        Battle.COMPETITORS,
+        options=eligible,
+        format_func=_name,
+        key=widget_key,
+        placeholder="Select competitors",
+    )
+
+
+def _apply_competitor_selection(selected: list[str]) -> None:
+    st.session_state.scheduler.selected_competitors = set(selected)
+
+
 # --- pages -------------------------------------------------------------------
 def battle_page():
     st.title(Battle.TITLE)
@@ -405,7 +444,7 @@ def battle_page():
         st.warning(Battle.NOT_READY)
         return
 
-    c1, c2, c3 = st.columns([2, 1, 1])
+    c1, c2, c3, c4 = st.columns([2, 1, 2, 1])
     with c1:
         lang = st.selectbox(
             Battle.LANGUAGE, languages,
@@ -424,14 +463,25 @@ def battle_page():
             index=_gender_index,
         )
     with c3:
+        selected_competitors = _competitor_multiselect(lang, health)
+    with c4:
         st.write("")
         st.write("")
-        start = st.button(Battle.START, use_container_width=True, type="primary")
+        start = st.button(
+            Battle.START,
+            use_container_width=True,
+            type="primary",
+            disabled=not selected_competitors,
+        )
 
     st.session_state.arena_language = lang
     st.session_state.arena_gender = gender
+    _apply_competitor_selection(selected_competitors)
 
-    setup_key = f"{lang}:{gender}"
+    if not selected_competitors:
+        st.warning(Battle.NO_COMPETITORS)
+
+    setup_key = f"{lang}:{gender}:{','.join(sorted(selected_competitors))}"
     plan = st.session_state.battle
     stored_setup = st.session_state.get("battle_setup")
     if plan and stored_setup and stored_setup != setup_key:
@@ -443,10 +493,10 @@ def battle_page():
     elif plan and not stored_setup:
         st.session_state.battle_setup = setup_key
 
-    n_comp = len(provider_health.competitors_for_language(lang, health))
+    n_comp = len(selected_competitors)
     st.caption(Battle.SETUP.format(lang=config.get_language_display(lang), n=n_comp))
 
-    if start:
+    if start and selected_competitors:
         st.session_state.gen_error = None
         st.session_state.pending_battle = (lang, gender)
 

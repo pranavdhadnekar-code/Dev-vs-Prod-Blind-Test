@@ -35,6 +35,8 @@ class Battle:
     LANGUAGE = "Language"
     VOICE_GENDER = "Voice gender"
     VOICE_GENDER_OPTIONS = ["Male", "Female"]
+    COMPETITORS = "Competitors"
+    NO_COMPETITORS = "Select at least one competitor to run a comparison."
     START = "Start comparison"
     SETUP = (
         "{lang} · {n} providers compared to " + ANCHOR + " · both clips are "

@@ -159,6 +159,7 @@ class Scheduler:
             if target_ci_width is None else target_ci_width
         )
         self.healthy_providers: Optional[Set[str]] = None
+        self.selected_competitors: Optional[Set[str]] = None
         # Round-robin rotation state (per language): remaining matchup keys for
         # the current round + the eligible set the round was built from.
         self._rotation: Dict[str, List[tuple]] = {}
@@ -188,6 +189,8 @@ class Scheduler:
         competitors = config.competitors_for_language(language, configured_only=configured_only)
         if self.healthy_providers is not None:
             competitors = [c for c in competitors if c in self.healthy_providers]
+        if self.selected_competitors is not None:
+            competitors = [c for c in competitors if c in self.selected_competitors]
         return self.strategy.matchups(language, anchor, competitors)
 
     @staticmethod
