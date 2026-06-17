@@ -104,7 +104,7 @@ async def check_provider(
             return {
                 "state": "ok",
                 "configured": True,
-                "message": f"{result.latency_ms:.0f} ms",
+                "message": f"{result.latency_ms:.0f} ms TTFB",
                 "latency_ms": result.latency_ms,
             }
         err = (result.error_message or "Synthesis failed").replace("\n", " ")

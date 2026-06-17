@@ -10,7 +10,7 @@ import os
 import base64
 import certifi
 from xml.sax.saxutils import escape as _xml_escape
-from typing import Dict, Any, Optional, Tuple, AsyncGenerator
+from typing import Dict, Any, List, Optional, Tuple, AsyncGenerator
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import io
@@ -94,7 +94,7 @@ class TTSResult:
     """Result from TTS generation"""
     success: bool
     audio_data: Optional[bytes]
-    latency_ms: float
+    latency_ms: float  # TTFB: ms from request send to first response body byte
     file_size_bytes: int
     error_message: Optional[str]
     metadata: Dict[str, Any]
@@ -139,6 +139,27 @@ class TTSProvider(ABC):
         
         return True, ""
     
+    @staticmethod
+    async def read_body_ttfb(response, send_time: float) -> Tuple[bytes, float]:
+        """Read the full response body via chunked streaming and return
+        (body_bytes, ttfb_ms).
+
+        ttfb_ms is the true time-to-first-byte: ms from ``send_time`` (captured
+        right before the request was sent) to the moment the first response
+        body chunk arrives. For non-streaming endpoints the body arrives in one
+        piece, so this naturally collapses to the full server-side latency.
+        """
+        ttfb_ms: Optional[float] = None
+        chunks: List[bytes] = []
+        async for chunk in response.content.iter_chunked(4096):
+            if chunk and ttfb_ms is None:
+                ttfb_ms = (time.time() - send_time) * 1000
+            chunks.append(chunk)
+        body = b"".join(chunks)
+        if ttfb_ms is None:  # empty body
+            ttfb_ms = (time.time() - send_time) * 1000
+        return body, ttfb_ms
+
     async def measure_ping_latency(self) -> float:
         """Measure pure network latency (RTT) without TTS processing"""
         try:
@@ -300,15 +321,15 @@ class MurfGen2TTSProvider(TTSProvider):
 
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     self.config.base_url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=60),
                 ) as response:
-                    latency_ms = (time.time() - start_time) * 1000
                     if response.status == 200:
-                        audio_data = await response.read()
+                        audio_data, latency_ms = await self.read_body_ttfb(response, send_time)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -321,6 +342,7 @@ class MurfGen2TTSProvider(TTSProvider):
                                 "voice": request.voice,
                             }),
                         )
+                    latency_ms = (time.time() - send_time) * 1000
                     err = await response.text()
                     return TTSResult(
                         success=False,
@@ -402,14 +424,14 @@ class Falcon2TTSProvider(TTSProvider):
         try:
             timeout_s = 180 if is_falcon_dev_stream() else 120
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=timeout_s),
                 ) as response:
-                    latency_ms = (time.time() - start_time) * 1000
-                    body = await response.read()
+                    body, latency_ms = await self.read_body_ttfb(response, send_time)
                     if response.status == 200 and body:
                         fmt = "wav" if body[:4] == b"RIFF" else "mp3"
                         meta = {"provider": self.provider_id, "model": "FALCON", "voice": request.voice}
@@ -733,17 +755,16 @@ class DeepgramAura2TTSProvider(TTSProvider):
         
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     url_with_params,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    end_time = time.time()
-                    latency_ms = (end_time - start_time) * 1000
-                    
                     if response.status == 200:
-                        audio_data = pcm16_to_wav(await response.read())
+                        pcm, latency_ms = await self.read_body_ttfb(response, send_time)
+                        audio_data = pcm16_to_wav(pcm)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -758,6 +779,7 @@ class DeepgramAura2TTSProvider(TTSProvider):
                             }),
                         )
                     else:
+                        latency_ms = (time.time() - send_time) * 1000
                         error_text = await response.text()
                         return TTSResult(
                             success=False,
@@ -1167,17 +1189,16 @@ class ElevenLabsV3TTSProvider(TTSProvider):
         
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    end_time = time.time()
-                    latency_ms = (end_time - start_time) * 1000
-                    
                     if response.status == 200:
-                        audio_data = pcm16_to_wav(await response.read())
+                        pcm, latency_ms = await self.read_body_ttfb(response, send_time)
+                        audio_data = pcm16_to_wav(pcm)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -1192,6 +1213,7 @@ class ElevenLabsV3TTSProvider(TTSProvider):
                             }),
                         )
                     else:
+                        latency_ms = (time.time() - send_time) * 1000
                         error_text = await response.text()
                         friendly = humanize_provider_error(
                             self.provider_id, response.status, error_text)
@@ -1273,18 +1295,16 @@ class OpenAITTSProvider(TTSProvider):
         
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     self.config.base_url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    end_time = time.time()
-                    latency_ms = (end_time - start_time) * 1000
-                    
                     if response.status == 200:
                         # OpenAI returns audio data directly
-                        audio_data = await response.read()
+                        audio_data, latency_ms = await self.read_body_ttfb(response, send_time)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -1299,6 +1319,7 @@ class OpenAITTSProvider(TTSProvider):
                             }),
                         )
                     else:
+                        latency_ms = (time.time() - send_time) * 1000
                         error_text = await response.text()
                         return TTSResult(
                             success=False,
@@ -1392,18 +1413,16 @@ class CartesiaTTSProvider(TTSProvider):
         
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     self.config.base_url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    end_time = time.time()
-                    latency_ms = (end_time - start_time) * 1000
-                    
                     if response.status == 200:
                         # Cartesia returns audio data directly
-                        audio_data = await response.read()
+                        audio_data, latency_ms = await self.read_body_ttfb(response, send_time)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -1418,6 +1437,7 @@ class CartesiaTTSProvider(TTSProvider):
                             }),
                         )
                     else:
+                        latency_ms = (time.time() - send_time) * 1000
                         error_text = await response.text()
                         return TTSResult(
                             success=False,
@@ -1734,22 +1754,22 @@ class SarvamBulbulV3TTSProvider(TTSProvider):
         
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     self.config.base_url,
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    end_time = time.time()
-                    latency_ms = (end_time - start_time) * 1000
-                    
                     if response.status == 200:
                         # Check content type to determine response format
                         content_type = response.headers.get('content-type', '').lower()
+                        body, latency_ms = await self.read_body_ttfb(response, send_time)
                         
                         if 'application/json' in content_type:
                             # JSON response - might contain audio URL or base64 data
-                            response_data = await response.json()
+                            import json as _json
+                            response_data = _json.loads(body.decode('utf-8'))
                             
                             if "audios" in response_data:
                                 # Sarvam AI returns base64 encoded audio in 'audios' array
@@ -1816,7 +1836,7 @@ class SarvamBulbulV3TTSProvider(TTSProvider):
                                 )
                         else:
                             # Direct audio data response
-                            audio_data = await response.read()
+                            audio_data = body
                             return TTSResult(
                                 success=True,
                                 audio_data=audio_data,
@@ -1832,6 +1852,7 @@ class SarvamBulbulV3TTSProvider(TTSProvider):
                                 }),
                             )
                     else:
+                        latency_ms = (time.time() - send_time) * 1000
                         error_text = await response.text()
                         return TTSResult(
                             success=False,
@@ -1894,12 +1915,14 @@ class GoogleTTSProvider(TTSProvider):
         }
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     url, json=payload, timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
-                    latency_ms = (time.time() - start_time) * 1000
                     if response.status == 200:
-                        body = await response.json()
+                        import json as _json
+                        raw, latency_ms = await self.read_body_ttfb(response, send_time)
+                        body = _json.loads(raw.decode("utf-8"))
                         pcm = base64.b64decode(body.get("audioContent", ""))
                         if not pcm:
                             return TTSResult(False, None, latency_ms, 0,
@@ -1918,6 +1941,7 @@ class GoogleTTSProvider(TTSProvider):
                                 "language": language_code,
                             }),
                         )
+                    latency_ms = (time.time() - send_time) * 1000
                     err = await response.text()
                     return TTSResult(False, None, latency_ms, 0,
                                      f"API Error {response.status}: {err}", {"provider": self.provider_id})
@@ -1968,13 +1992,13 @@ class AzureTTSProvider(TTSProvider):
         )
         try:
             async with aiohttp.ClientSession(connector=get_connector()) as session:
+                send_time = time.time()
                 async with session.post(
                     url, headers=headers, data=ssml.encode("utf-8"),
                     timeout=aiohttp.ClientTimeout(total=30),
                 ) as response:
-                    latency_ms = (time.time() - start_time) * 1000
                     if response.status == 200:
-                        audio_data = await response.read()
+                        audio_data, latency_ms = await self.read_body_ttfb(response, send_time)
                         return TTSResult(
                             success=True,
                             audio_data=audio_data,
@@ -1988,6 +2012,7 @@ class AzureTTSProvider(TTSProvider):
                                 "language": locale,
                             }),
                         )
+                    latency_ms = (time.time() - send_time) * 1000
                     err = await response.text()
                     return TTSResult(False, None, latency_ms, 0,
                                      f"API Error {response.status}: {err}", {"provider": self.provider_id})

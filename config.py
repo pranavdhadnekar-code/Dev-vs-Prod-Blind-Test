@@ -56,19 +56,10 @@ def get_omni_tts_url() -> str:
 
 def get_falcon_api_url() -> str:
     """Murf Falcon 2 (FALCON) streaming endpoint for the arena anchor."""
-    base = (
+    return (
         _clean_env("MURF_FALCON_URL")
         or "https://api.murf.ai/v1/speech/stream"
     )
-    if "redisStream=" in base:
-        return base
-    stream = _clean_env("MURF_FALCON_REDIS_STREAM")
-    if not stream and "dev.murf.ai" in base:
-        stream = "BLUE"
-    if stream:
-        sep = "&" if "?" in base else "?"
-        return f"{base}{sep}redisStream={stream}"
-    return base
 
 
 def is_falcon_dev_stream() -> bool:
@@ -301,16 +292,12 @@ _FALCON_DEV_VOICES: List[str] = flatten_voice_ids(_MURF_DEV_FALCON)
 
 
 def get_falcon_supported_voices() -> List[str]:
-    """Voice IDs accepted for Falcon 2 validation (dev catalog vs shared Gen2)."""
-    if is_falcon_dev_stream():
-        return list(_FALCON_DEV_VOICES)
-    return list(_SHARED_VOICES)
+    """Voice IDs accepted for Falcon 2 validation."""
+    return list(_FALCON_DEV_VOICES)
 
 
 def get_falcon_voice_info() -> Dict[str, VoiceInfo]:
-    if is_falcon_dev_stream():
-        return {vid: _VOICE_INFO[vid] for vid in _FALCON_DEV_VOICES if vid in _VOICE_INFO}
-    return dict(_VOICE_INFO)
+    return {vid: _VOICE_INFO[vid] for vid in _FALCON_DEV_VOICES if vid in _VOICE_INFO}
 
 def _voice_info_from(pairs: List[tuple], accent: str = "US") -> Dict[str, VoiceInfo]:
     """Build a {voice_id: VoiceInfo} map from (id, name, gender) tuples."""

@@ -57,16 +57,16 @@ _MURF_PROD: Dict[str, VoicePool] = {
 }
 
 _MURF_DEV_FALCON: Dict[str, VoicePool] = {
-    "en-US": v("en-US-wyatt", "en-US-grant", "en-US-isabelle", "en-US-cc-033-f"),
-    "en-IN": v("en-IN-samar", "en-IN-cc-050-m", "en-IN-cc-006-f", "en-IN-anisha"),
-    "en-UK": v("en-UK-reuben", "en-UK-leonard", "en-UK-cc-035-f", "en-UK-lucy"),
-    "hi-IN": v("hi-IN-cc-028-m", "hi-IN-cc-026-m", "hi-IN-khyati", "hi-IN-cc-059-f"),
-    "bn-IN": v("bn-IN-anirban", "bn-IN-debashis", "bn-IN-debarati", "bn-IN-shreyasi"),
-    "ta-IN": v("ta-IN-velmurugan", "ta-IN-santhosh", "ta-IN-janaki", "ta-IN-gayathri"),
-    "fr-FR": v("fr-FR-maxime", "fr-FR-axel", "fr-FR-justine", "fr-FR-louise"),
-    "es-ES": v("es-ES-enrique", "es-MX-alejandro", "es-ES-carla", "es-ES-carmen"),
-    "mr-IN": v("mr-IN-abhishek", "mr-IN-harshad", "mr-IN-prajakta", "mr-IN-rujuta"),
-    "ml-IN": v("ml-IN-vishnu", "ml-IN-madhavan", "ml-IN-sreelakshmi", "ml-IN-nimisha"),
+    "en-US": v("en-US-will", "en-US-gordon", "en-US-olivia", "en-US-luna"),
+    "en-IN": v("en-IN-samar", "en-IN-nikhil", "en-IN-anusha", "en-IN-anisha"),
+    "en-UK": {"male": ["en-UK-benedict", "en-UK-jake"], "female": ["en-UK-lydia"]},
+    "hi-IN": v("hi-IN-aman", "hi-IN-karan", "hi-IN-namrita", "hi-IN-khyati"),
+    "bn-IN": {"male": ["bn-IN-subhankar"], "female": ["bn-IN-debarati"]},
+    "ta-IN": {"male": ["ta-IN-romesh"], "female": ["ta-IN-latika"]},
+    "fr-FR": {"male": ["fr-FR-guillaume", "fr-FR-axel"], "female": ["fr-FR-justine"]},
+    "es-ES": {"male": ["es-ES-javier"], "female": ["es-ES-carmen"]},
+    "mr-IN": {"male": ["mr-IN-prathamesh", "mr-IN-vaibhav"], "female": ["mr-IN-prajakta"]},
+    "ml-IN": {"male": ["ml-IN-madhavan"], "female": ["ml-IN-nimisha"]},
 }
 
 _GOOGLE: Dict[str, VoicePool] = {
@@ -157,8 +157,9 @@ PROVIDER_SUPPORTED_LANGUAGES: Dict[str, set] = {
 }
 
 
-def build_provider_languages(omni_dev: bool) -> Dict[str, Dict[str, VoicePool]]:
-    murf_omni = _MURF_DEV_FALCON if omni_dev else _MURF_PROD
+def build_provider_languages(omni_dev: bool = True) -> Dict[str, Dict[str, VoicePool]]:
+    # Falcon 2 (omni_tts) always uses its own voice catalog, independent of Murf Gen2.
+    murf_omni = dict(_MURF_DEV_FALCON)
     el = v(*_EL_M, *_EL_F)
     ct = v(*_CT_M, *_CT_F)
     oai = v(*_OAI_M, *_OAI_F)
