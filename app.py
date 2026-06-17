@@ -315,7 +315,6 @@ def generate_battle(language: str, gender: str, on_step=None):
     else:
         st.session_state.falcon_raw = None
 
-    st.session_state.battle_setup = f"{language}:{gender}"
     st.session_state["comment_text"] = ""
 
 
@@ -516,6 +515,7 @@ def battle_page():
                 status.update(label=Battle.LOADING_DONE, state="complete")
         st.session_state.pending_battle = None
         if not st.session_state.gen_error:
+            st.session_state.battle_setup = setup_key
             st.rerun()
 
     if st.session_state.gen_error:
