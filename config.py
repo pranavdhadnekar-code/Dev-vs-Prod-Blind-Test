@@ -776,11 +776,11 @@ PAIRING_STRATEGY: str = os.getenv("ARENA_PAIRING_STRATEGY", "anchor_only")
 LANGUAGES: Dict[str, str] = dict(ARENA_LANGUAGES)
 
 # Which corpus bucket (voice_battle_corpus.tsv locale tag) feeds each language.
-# en-IN / en-UK reuse the en-US corpus lines until dedicated rows exist.
+# en-US reuses en-UK lines (UK English customer-service script).
 LANGUAGE_TO_CORPUS: Dict[str, str] = {
-    "en-US": "en-US",
-    "en-IN": "en-US",
-    "en-UK": "en-US",
+    "en-US": "en-UK",
+    "en-IN": "en-IN",
+    "en-UK": "en-UK",
     "hi-IN": "hi-IN",
     "bn-IN": "bn-IN",
     "ta-IN": "ta-IN",

@@ -1,7 +1,7 @@
 """Voice Battle default sentences loaded from bundled TSV (`voice_battle_corpus.tsv`).
 
 Extend or replace sentences by editing that file (two columns: locale\\t<text>, one sentence per row).
-Locales **en-IN** and **en-UK** use the **en-US** lines until separate rows exist in the corpus.
+Locales **en-US** reuses the **en-UK** lines. **en-IN** has its own Indian English corpus.
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ Hello, how can I assist you today with your account inquiry?"""
 
 # Maps `blind_test_2_locale_filter` UI keys → BCP locale tag rows in voice_battle_corpus.tsv.
 _VOICE_BATTLE_UI_TO_BCP_LOCALE: Dict[str, str] = {
-    "US": "en-US",
-    "IN": "en-US",
-    "UK": "en-US",
+    "US": "en-UK",
+    "IN": "en-IN",
+    "UK": "en-UK",
     "HI": "hi-IN",
     "BN": "bn-IN",
     "TA": "ta-IN",

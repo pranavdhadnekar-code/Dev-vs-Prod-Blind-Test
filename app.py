@@ -559,7 +559,12 @@ def battle_page():
             key=f"played_right_{player_key}",
         )
 
-    st.text_area(Battle.COMMENT, key="comment_text", height=80)
+    st.text_area(
+        Battle.COMMENT,
+        key="comment_text",
+        height=80,
+        placeholder=Battle.COMMENT_PLACEHOLDER,
+    )
 
     can_vote = (
         st.session_state.get(f"played_left_{player_key}")

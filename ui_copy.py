@@ -63,6 +63,10 @@ class Battle:
     LISTENED = "I listened to {sample}"
     DOWNLOAD = "Download"
     COMMENT = "Add a note (optional)"
+    COMMENT_PLACEHOLDER = (
+        "e.g. Sample B sounds more natural and expressive — clearer tone and "
+        "better pacing."
+    )
     VOTE_GATE = "Listen to both clips and check both boxes to vote."
     VOTE_A = "Sample A is better"
     VOTE_TIE = "About the same"
