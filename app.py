@@ -142,7 +142,7 @@ def _init_state():
     ss.setdefault("scheduler", Scheduler())
     ss.setdefault("battle", None)          # current BattlePlan
     ss.setdefault("clips", {})             # {'left': bytes, 'right': bytes}
-    ss.setdefault("falcon_raw", None)      # {'audio': bytes, 'ext': str} raw anchor clip
+    ss.setdefault("battle_raw", None)      # falcon + competitor raw clips for failure export
     ss.setdefault("pending_battle", None)  # (language, gender) awaiting synthesis
     ss.setdefault("gen_error", None)
     ss.setdefault("arena_language", None)
@@ -252,6 +252,10 @@ async def _synth_both(plan):
     )
 
 
+def _raw_audio_ext(data: bytes | None) -> str:
+    return "wav" if data and data[:4] == b"RIFF" else "mp3"
+
+
 def generate_battle(language: str, gender: str, on_step=None):
     """Schedule + synthesize + normalize a battle; persist it; arm playback.
 
@@ -309,8 +313,8 @@ def generate_battle(language: str, gender: str, on_step=None):
     st.session_state.battle = plan
     st.session_state.clips = {"left": nl.audio, "right": nr.audio}
 
-    # Stash the RAW anchor (Falcon) audio so we can export it later if Falcon
-    # loses this battle. Raw model output (not the normalized clip) is kept.
+    # Stash raw model outputs (pre-normalization) for both sides so we can
+    # export Falcon + winning competitor clips if Falcon loses this battle.
     anchor = config.anchor_provider()
     falcon_side = (
         "left" if plan.left_provider == anchor
@@ -318,11 +322,22 @@ def generate_battle(language: str, gender: str, on_step=None):
         else None
     )
     if falcon_side:
-        raw = (res_left if falcon_side == "left" else res_right).audio_data
-        ext = "wav" if raw and raw[:4] == b"RIFF" else "mp3"
-        st.session_state.falcon_raw = {"audio": raw, "ext": ext, "side": falcon_side}
+        comp_side = "right" if falcon_side == "left" else "left"
+        falcon_res = res_left if falcon_side == "left" else res_right
+        comp_res = res_right if falcon_side == "left" else res_left
+        st.session_state.battle_raw = {
+            "falcon_side": falcon_side,
+            "falcon": {
+                "audio": falcon_res.audio_data,
+                "ext": _raw_audio_ext(falcon_res.audio_data),
+            },
+            "competitor": {
+                "audio": comp_res.audio_data,
+                "ext": _raw_audio_ext(comp_res.audio_data),
+            },
+        }
     else:
-        st.session_state.falcon_raw = None
+        st.session_state.battle_raw = None
 
     st.session_state["comment_text"] = ""
 
@@ -342,26 +357,22 @@ def record_vote(outcome: str):
     gender = st.session_state.arena_gender
     st.session_state.battle = None
     st.session_state.clips = {}
-    st.session_state.falcon_raw = None
+    st.session_state.battle_raw = None
     st.session_state.pending_battle = (lang, gender)
     st.toast(Battle.VOTE_SAVED)
 
 
 def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = ""):
-    """Persist the raw Falcon clip + text when Falcon lost this battle.
-
-    Falcon "failed" = the competitor was preferred (ties/wins are skipped).
-    Only stored when the anchor (Falcon) was actually one of the two sides.
-    """
-    falcon_raw = st.session_state.get("falcon_raw")
-    if not falcon_raw or not falcon_raw.get("audio"):
+    """Persist raw Falcon + winning competitor clips when Falcon lost."""
+    battle_raw = st.session_state.get("battle_raw")
+    if not battle_raw or not battle_raw.get("falcon", {}).get("audio"):
         return
     norm = {"a": "A", "left": "A", "b": "B", "right": "B",
             "tie": "tie", "same": "tie"}.get((outcome or "").strip().lower())
     if norm not in ("A", "B"):
-        return  # ties are not failures
+        return
 
-    falcon_side = falcon_raw.get("side")
+    falcon_side = battle_raw.get("falcon_side")
     falcon_lost = (falcon_side == "left" and norm == "B") or \
                   (falcon_side == "right" and norm == "A")
     if not falcon_lost:
@@ -374,6 +385,9 @@ def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = 
         falcon_voice, competitor, competitor_voice = (
             plan.right_voice, plan.left_provider, plan.left_voice)
 
+    falcon_clip = battle_raw["falcon"]
+    comp_clip = battle_raw.get("competitor") or {}
+
     try:
         db.save_falcon_failure(
             battle_id=plan.battle_id,
@@ -384,8 +398,10 @@ def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = 
             competitor_provider=competitor,
             competitor_voice=competitor_voice,
             outcome=norm,
-            audio_bytes=falcon_raw["audio"],
-            audio_format=falcon_raw.get("ext", "wav"),
+            falcon_audio_bytes=falcon_clip["audio"],
+            falcon_audio_format=falcon_clip.get("ext", "wav"),
+            competitor_audio_bytes=comp_clip.get("audio"),
+            competitor_audio_format=comp_clip.get("ext", "wav"),
             rater_session=session_manager.get_session_id(),
             comment=comment_deanonymized,
         )
@@ -495,7 +511,7 @@ def battle_page():
     if plan and stored_setup and stored_setup != setup_key:
         st.session_state.battle = None
         st.session_state.clips = {}
-        st.session_state.falcon_raw = None
+        st.session_state.battle_raw = None
         st.session_state.pending_battle = None
         plan = None
     elif plan and not stored_setup:
@@ -759,11 +775,13 @@ def _fname_safe(value: str) -> str:
 
 
 def _build_falcon_failures_zip(rows: list) -> bytes:
-    """Build an in-memory ZIP of raw Falcon failure clips + manifests."""
+    """ZIP of paired Falcon + competitor raw clips per lost battle."""
     manifest_cols = [
-        "battle_id", "language", "item_id", "text", "falcon_voice",
-        "competitor_provider", "competitor_voice", "outcome",
-        "comment", "created_at", "audio_file",
+        "battle_id", "language", "item_id", "text",
+        "falcon_voice", "competitor_provider", "competitor_voice",
+        "outcome", "comment", "created_at",
+        "falcon_audio_file", "falcon_audio_format",
+        "competitor_audio_file", "competitor_audio_format",
     ]
     csv_buf = io.StringIO()
     writer = csv.DictWriter(csv_buf, fieldnames=manifest_cols)
@@ -775,20 +793,28 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
         seen: dict[str, int] = {}
         for rec in rows:
             lang = rec.get("language") or "unknown"
-            ext = rec.get("audio_format") or "wav"
             ts = _fname_safe(rec.get("created_at"))
-            voice = _fname_safe(rec.get("falcon_voice"))
             bid = _fname_safe(rec.get("battle_id"))
-            stem = f"{ts}__{bid}__{voice}"
-            # Guard against any duplicate stems.
+            falcon_voice = _fname_safe(rec.get("falcon_voice"))
+            comp_pid = _fname_safe(rec.get("competitor_provider"))
+            comp_voice = _fname_safe(rec.get("competitor_voice"))
+            stem = f"{ts}__{bid}"
             seen[stem] = seen.get(stem, 0) + 1
             if seen[stem] > 1:
                 stem = f"{stem}__{seen[stem]}"
-            audio_file = f"audio/{_fname_safe(lang)}/{stem}.{ext}"
+            pair_dir = f"audio/{_fname_safe(lang)}/{stem}"
 
-            audio = rec.get("audio_bytes") or b""
-            if audio:
-                zf.writestr(f"falcon_failures/{audio_file}", audio)
+            falcon_ext = rec.get("falcon_audio_format") or rec.get("audio_format") or "wav"
+            comp_ext = rec.get("competitor_audio_format") or "wav"
+            falcon_file = f"{pair_dir}/falcon__{falcon_voice}.{falcon_ext}"
+            comp_file = f"{pair_dir}/{comp_pid}__{comp_voice}.{comp_ext}"
+
+            falcon_audio = rec.get("falcon_audio_bytes") or b""
+            comp_audio = rec.get("competitor_audio_bytes") or b""
+            if falcon_audio:
+                zf.writestr(f"falcon_failures/{falcon_file}", falcon_audio)
+            if comp_audio:
+                zf.writestr(f"falcon_failures/{comp_file}", comp_audio)
 
             row = {
                 "battle_id": rec.get("battle_id", ""),
@@ -801,7 +827,10 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
                 "outcome": rec.get("outcome", ""),
                 "comment": rec.get("comment") or "",
                 "created_at": str(rec.get("created_at", "")),
-                "audio_file": audio_file if audio else "",
+                "falcon_audio_file": falcon_file if falcon_audio else "",
+                "falcon_audio_format": falcon_ext if falcon_audio else "",
+                "competitor_audio_file": comp_file if comp_audio else "",
+                "competitor_audio_format": comp_ext if comp_audio else "",
             }
             writer.writerow(row)
             jsonl_lines.append(json.dumps(row, ensure_ascii=False, default=str))
@@ -812,13 +841,15 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
             "falcon_failures/README.txt",
             "Falcon failure export\n"
             "=====================\n\n"
-            "Each audio file is the RAW Falcon 2 model output for a battle where\n"
-            "the competitor was preferred (Falcon lost the vote). Ties and wins\n"
-            "are not included.\n\n"
-            "audio/<language>/<created_at>__<battle_id>__<falcon_voice>.<wav|mp3>\n"
-            "failures.csv / failures.jsonl map each clip to its text, deanonymized\n"
-            "rater comment (if any), and metadata (competitor it lost to, voices,\n"
-            "outcome, timestamp).\n",
+            "Each row is a battle where the rater preferred the competitor over\n"
+            "Falcon 2. Ties and Falcon wins are not included.\n\n"
+            "Folder layout (one pair per battle):\n"
+            "  audio/<language>/<timestamp>__<battle_id>/\n"
+            "    falcon__<falcon_voice>.<wav|mp3>      — raw Falcon model output\n"
+            "    <competitor>__<competitor_voice>.<wav|mp3> — raw winning clip\n\n"
+            "failures.csv and failures.jsonl list both audio paths, the spoken\n"
+            "text, voices, competitor name, deanonymized comment (if any), and\n"
+            "timestamp. Older rows may only have the Falcon clip.\n",
         )
     return buf.getvalue()
 
@@ -880,7 +911,7 @@ def export_page():
 
 
 def _falcon_failures_section():
-    """Download raw Falcon clips + text for battles where Falcon lost."""
+    """Download paired Falcon + competitor clips for battles where Falcon lost."""
     st.markdown("---")
     st.markdown(f"### {Export.FAILURES_TITLE}")
     st.caption(Export.FAILURES_HELP)

@@ -350,6 +350,15 @@ class BenchmarkDatabase:
         except Exception:
             pass
 
+        for col, typedef in (
+            ("competitor_audio_format", "TEXT"),
+            ("competitor_audio_base64", "TEXT"),
+        ):
+            try:
+                cursor.execute(f'ALTER TABLE falcon_failures ADD COLUMN {col} {typedef}')
+            except Exception:
+                pass
+
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_battle ON votes(battle_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_language ON votes(language)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_battles_language ON battles(language)')
@@ -1208,27 +1217,40 @@ class BenchmarkDatabase:
         conn.close()
         return langs
 
-    def save_falcon_failure(self, battle_id: str, language: str, item_id: str,
-                            item_text: str, falcon_voice: str,
-                            competitor_provider: str, competitor_voice: str,
-                            outcome: str, audio_bytes: bytes,
-                            audio_format: str = "wav",
-                            rater_session: str = "default",
-                            comment: str = "") -> bool:
-        """Persist a lost Falcon battle: raw audio (base64) + text + metadata."""
-        audio_b64 = base64.b64encode(audio_bytes or b"").decode("ascii")
+    def save_falcon_failure(
+        self,
+        battle_id: str,
+        language: str,
+        item_id: str,
+        item_text: str,
+        falcon_voice: str,
+        competitor_provider: str,
+        competitor_voice: str,
+        outcome: str,
+        falcon_audio_bytes: bytes,
+        falcon_audio_format: str = "wav",
+        competitor_audio_bytes: Optional[bytes] = None,
+        competitor_audio_format: str = "wav",
+        rater_session: str = "default",
+        comment: str = "",
+    ) -> bool:
+        """Persist a lost Falcon battle: raw Falcon + competitor audio and metadata."""
+        falcon_b64 = base64.b64encode(falcon_audio_bytes or b"").decode("ascii")
+        comp_b64 = base64.b64encode(competitor_audio_bytes or b"").decode("ascii")
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO falcon_failures
             (battle_id, language, item_id, item_text, falcon_voice,
              competitor_provider, competitor_voice, outcome, audio_format,
-             audio_base64, rater_session, comment, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+             audio_base64, competitor_audio_format, competitor_audio_base64,
+             rater_session, comment, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             battle_id, language, item_id, item_text, falcon_voice,
-            competitor_provider, competitor_voice, outcome, audio_format,
-            audio_b64, rater_session, comment or "", datetime.now(),
+            competitor_provider, competitor_voice, outcome, falcon_audio_format,
+            falcon_b64, competitor_audio_format, comp_b64,
+            rater_session, comment or "", datetime.now(),
         ))
         conn.commit()
         conn.close()
@@ -1249,19 +1271,17 @@ class BenchmarkDatabase:
 
     def get_falcon_failures(self, language: str = None,
                             with_audio: bool = False) -> List[Dict[str, Any]]:
-        """Stored Falcon failures. Set with_audio to include decoded audio bytes.
-
-        Each row includes: battle_id, language, item_id, item_text, falcon_voice,
-        competitor_provider, competitor_voice, outcome, audio_format, created_at,
-        and (when with_audio) audio_bytes.
-        """
-        audio_col = ", audio_base64" if with_audio else ""
+        """Stored Falcon failures. Set with_audio to include decoded audio bytes."""
+        audio_cols = ""
+        if with_audio:
+            audio_cols = ", audio_base64, competitor_audio_base64"
         conn = self._connect(dict_rows=True)
         cursor = conn.cursor()
         sql = (
             "SELECT battle_id, language, item_id, item_text, falcon_voice, "
             "competitor_provider, competitor_voice, outcome, audio_format, "
-            "comment, created_at" + audio_col + " FROM falcon_failures"
+            "competitor_audio_format, comment, created_at" + audio_cols
+            + " FROM falcon_failures"
         )
         if language:
             cursor.execute(sql + " WHERE language = ? ORDER BY created_at", (language,))
@@ -1273,7 +1293,10 @@ class BenchmarkDatabase:
         for row in rows:
             rec = dict(row)
             if with_audio:
-                rec["audio_bytes"] = base64.b64decode(rec.pop("audio_base64") or "")
+                rec["falcon_audio_bytes"] = base64.b64decode(rec.pop("audio_base64") or "")
+                rec["competitor_audio_bytes"] = base64.b64decode(
+                    rec.pop("competitor_audio_base64") or "")
+                rec["falcon_audio_format"] = rec.get("audio_format") or "wav"
             out.append(rec)
         return out
 

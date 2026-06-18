@@ -156,14 +156,15 @@ class Export:
     RECENT = "Recent snapshots"
     FAILURES_TITLE = "Falcon failures (lost battles)"
     FAILURES_HELP = (
-        "Download the raw Falcon 2 audio and text for battles where the "
-        "competitor was preferred. Only failures recorded after this feature "
-        "was deployed are included."
+        "Download raw Falcon 2 and winning-competitor audio plus text for "
+        "battles where the competitor was preferred. Each ZIP pairs both clips "
+        "in the same folder. Only failures recorded after this feature was "
+        "deployed are included."
     )
     FAILURES_EMPTY = "No Falcon losses recorded yet."
     FAILURES_ALL_LANGS = "All languages"
     FAILURES_LANGUAGE = "Language"
-    FAILURES_COUNT = "{n} failing clip(s) ready to export."
+    FAILURES_COUNT = "{n} lost battle(s) ready to export (Falcon + competitor audio)."
     FAILURES_PREPARE = "Prepare failures (.zip)"
     FAILURES_DOWNLOAD = "Download failures (.zip)"
 
