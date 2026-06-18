@@ -23,11 +23,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    import plotly.express as px
-except Exception:
-    px = None
-
-try:
     import openai
 except ImportError:
     openai = None
@@ -36,6 +31,7 @@ import config
 import audio_norm
 import provider_health
 import reporting
+import leaderboard_charts as lb_charts
 import ui_copy
 from ui_copy import Nav, Battle, Leaderboard, Comments, Export, Health, Errors
 from scheduler import Scheduler, SchedulerError
@@ -585,45 +581,6 @@ def battle_page():
                   on_click=lambda: record_vote("B"))
 
 
-def _winrate_df(rows):
-    if not rows:
-        return pd.DataFrame()
-    df = pd.DataFrame(rows)
-    df[Leaderboard.COL_WIN_RATE] = (df["anchor_win_rate"] * 100).round(1)
-    df[Leaderboard.COL_CONFIDENCE] = df.apply(
-        lambda r: f"{r['ci_low']*100:.0f}–{r['ci_high']*100:.0f}%"
-        if pd.notna(r["ci_low"]) else "—", axis=1)
-    return df[["competitor_name", "anchor_preferred", "competitor_preferred",
-               "ties", "n", Leaderboard.COL_WIN_RATE, Leaderboard.COL_CONFIDENCE]].rename(columns={
-        "competitor_name": Leaderboard.COL_COMPETITOR,
-        "anchor_preferred": Leaderboard.COL_ANCHOR_WINS,
-        "competitor_preferred": Leaderboard.COL_PROVIDER_WINS,
-        "ties": Leaderboard.COL_TIES, "n": Leaderboard.COL_COMPARISONS})
-
-
-def _voice_winrate_df(rows):
-    if not rows:
-        return pd.DataFrame()
-    df = pd.DataFrame(rows)
-    df[Leaderboard.COL_WIN_RATE] = df["anchor_win_rate"].apply(
-        lambda x: round(x * 100, 1) if pd.notna(x) else None)
-    df[Leaderboard.COL_CONFIDENCE] = df.apply(
-        lambda r: f"{r['ci_low']*100:.0f}–{r['ci_high']*100:.0f}%"
-        if pd.notna(r["ci_low"]) else "—", axis=1)
-    df[Leaderboard.COL_VOICE] = df.apply(
-        lambda r: f"{r['voice_name']} ({r['voice']})"
-        if r["voice_name"] != r["voice"] else r["voice"], axis=1)
-    df[Leaderboard.COL_GENDER] = df["gender"].str.capitalize()
-    df[Leaderboard.COL_LOSES_TO] = df["loses_to_label"]
-    return df[[Leaderboard.COL_VOICE, Leaderboard.COL_GENDER, "anchor_preferred",
-               "competitor_preferred", "ties", "n",
-               Leaderboard.COL_WIN_RATE, Leaderboard.COL_CONFIDENCE,
-               Leaderboard.COL_LOSES_TO]].rename(columns={
-        "anchor_preferred": Leaderboard.COL_ANCHOR_WINS,
-        "competitor_preferred": Leaderboard.COL_ANCHOR_LOSSES,
-        "ties": Leaderboard.COL_TIES, "n": Leaderboard.COL_COMPARISONS})
-
-
 def leaderboard_page():
     st.title(Leaderboard.TITLE)
     report = reporting.ArenaReport(db)
@@ -638,16 +595,17 @@ def leaderboard_page():
         st.info(Leaderboard.NO_DATA)
         return
 
+    st.caption(Leaderboard.COLOR_LEGEND)
+
     st.markdown(f"### {Leaderboard.HEAD_TO_HEAD}")
     grid = report.winrate_grid(None)
-    df = _winrate_df(grid)
-    if not df.empty:
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        if px is not None:
-            fig = px.bar(df, x=Leaderboard.COL_COMPETITOR, y=Leaderboard.COL_WIN_RATE,
-                         title=Leaderboard.CHART_TITLE, range_y=[0, 100])
-            fig.add_hline(y=50, line_dash="dash")
-            st.plotly_chart(fig, use_container_width=True)
+    if grid:
+        st.plotly_chart(
+            lb_charts.outcome_stacked_bar(lb_charts.prep_head_to_head(grid)),
+            use_container_width=True,
+        )
+    else:
+        st.info(Leaderboard.NO_DATA)
 
     st.markdown(f"### {Leaderboard.OVERALL}")
     weights = config.language_weights(list(fits.keys()))
@@ -655,20 +613,19 @@ def leaderboard_page():
         f"{config.get_language_display(l)} {w*100:.0f}%" for l, w in weights.items())))
     overall = report.overall(fits)
     orows = report.overall_leaderboard(overall)
-    odf = pd.DataFrame([{
-        Leaderboard.COL_RANK: r["rank"],
-        Leaderboard.COL_PROVIDER: r["provider_name"] + (" ⚓" if r["is_anchor"] else ""),
-        Leaderboard.COL_SCORE: round(r["elo"], 1),
-        Leaderboard.COL_CONFIDENCE: f"{r['elo_ci_low']:.0f}–{r['elo_ci_high']:.0f}",
-        Leaderboard.COL_COMPARISONS: r["n_comparisons"],
-        Leaderboard.COL_TIED_WITH: ", ".join(_name(p) for p in r["statistically_tied_with"]) or "—",
-    } for r in orows])
-    st.dataframe(odf, use_container_width=True, hide_index=True)
+    if orows:
+        st.plotly_chart(lb_charts.forest_plot(orows), use_container_width=True)
 
     st.markdown(f"### {Leaderboard.PER_LANGUAGE}")
-    tabs = st.tabs([config.get_language_display(l) for l in fits])
-    for tab, (lang, fit) in zip(tabs, fits.items()):
-        with tab:
+    heatmap_cells = lb_charts.prep_heatmap_cells(
+        report, fits, config.get_language_display)
+    if heatmap_cells:
+        st.plotly_chart(
+            lb_charts.language_winrate_heatmap(heatmap_cells),
+            use_container_width=True,
+        )
+    for lang, fit in fits.items():
+        with st.expander(config.get_language_display(lang)):
             st.caption(Leaderboard.LANG_SUMMARY.format(n=fit.n_comparisons, ties=fit.n_ties))
             battle_counts = db.get_competitor_battle_counts(lang)
             if battle_counts:
@@ -677,31 +634,28 @@ def leaderboard_page():
                         battle_counts.items(), key=lambda kv: (-kv[1], kv[0]))
                 )
                 st.caption(Leaderboard.BATTLES_BY_COMPETITOR.format(breakdown=breakdown))
-            st.caption(Leaderboard.SCHEDULER_NOTE)
-            lb = report.language_leaderboard(fit)
-            ldf = pd.DataFrame([{
-                Leaderboard.COL_PROVIDER: r["provider_name"] + (" ⚓" if r["is_anchor"] else ""),
-                Leaderboard.COL_SCORE: round(r["elo"], 1),
-                Leaderboard.COL_CONFIDENCE: f"{r['elo_ci_low']:.0f}–{r['elo_ci_high']:.0f}",
-                Leaderboard.COL_COMPARISONS: r["n_comparisons"],
-            } for r in lb])
-            st.dataframe(ldf, use_container_width=True, hide_index=True)
-            st.markdown(f"**{Leaderboard.LANG_HEAD_TO_HEAD}**")
-            gdf = _winrate_df(report.winrate_grid(lang))
-            if not gdf.empty:
-                st.dataframe(gdf, use_container_width=True, hide_index=True)
-            st.info(Leaderboard.INFERRED_NOTE)
+            lang_grid = report.winrate_grid(lang)
+            if lang_grid:
+                st.plotly_chart(
+                    lb_charts.outcome_stacked_bar(lb_charts.prep_head_to_head(lang_grid)),
+                    use_container_width=True,
+                )
 
     st.markdown(f"### {Leaderboard.VOICE_BREAKDOWN}")
-    st.caption(Leaderboard.VOICE_BREAKDOWN_HINT)
     vtabs = st.tabs([config.get_language_display(l) for l in fits])
     for tab, lang in zip(vtabs, fits):
         with tab:
-            vdf = _voice_winrate_df(report.anchor_voice_winrate(lang))
-            if vdf.empty:
+            vrows = report.anchor_voice_winrate(lang)
+            if not vrows:
                 st.info(Leaderboard.VOICE_NO_DATA)
             else:
-                st.dataframe(vdf, use_container_width=True, hide_index=True)
+                st.plotly_chart(
+                    lb_charts.outcome_stacked_bar(
+                        lb_charts.prep_voice_rows(vrows),
+                        scale_low_n=True,
+                    ),
+                    use_container_width=True,
+                )
 
 
 def comments_page():

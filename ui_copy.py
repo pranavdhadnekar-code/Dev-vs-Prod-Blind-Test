@@ -120,6 +120,9 @@ class Leaderboard:
     COL_PROVIDER_WINS = "Provider wins"
     COL_TIES = "Ties"
     COL_WIN_RATE = f"{ANCHOR} win rate"
+    COLOR_LEGEND = (
+        "Teal = Falcon wins · Coral = competitor wins · Gray = ties"
+    )
 
 
 class Comments:
