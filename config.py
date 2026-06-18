@@ -458,13 +458,9 @@ _AZURE_VOICES = _voice_info_from([
     ("es-ES-AlvaroNeural", "Alvaro (ES)", "male"),
     ("es-ES-ArnauNeural", "Arnau (ES)", "male"),
     ("mr-IN-AarohiNeural", "Aarohi (MR)", "female"),
-    ("mr-IN-SnehaNeural", "Sneha (MR)", "female"),
     ("mr-IN-ManoharNeural", "Manohar (MR)", "male"),
-    ("mr-IN-AjayNeural", "Ajay (MR)", "male"),
     ("ml-IN-SobhanaNeural", "Sobhana (ML)", "female"),
-    ("ml-IN-MayaNeural", "Maya (ML)", "female"),
     ("ml-IN-MidhunNeural", "Midhun (ML)", "male"),
-    ("ml-IN-ArjunNeural", "Arjun (ML)", "male"),
 ])
 
 # Amazon Polly (neural engine). VoiceId implies the language.

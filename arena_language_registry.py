@@ -176,11 +176,10 @@ _AZURE: Dict[str, VoicePool] = {
     "ta-IN": v("ta-IN-ValluvarNeural", "ta-IN-SuryaNeural", "ta-IN-PallaviNeural", "ta-IN-SnehaNeural"),
     "fr-FR": v("fr-FR-HenriNeural", "fr-FR-AlainNeural", "fr-FR-DeniseNeural", "fr-FR-EloiseNeural"),
     "es-ES": v("es-ES-AlvaroNeural", "es-ES-ArnauNeural", "es-ES-ElviraNeural", "es-ES-AbrilNeural"),
-    "mr-IN": v("mr-IN-ManoharNeural", "mr-IN-AjayNeural", "mr-IN-AarohiNeural", "mr-IN-SnehaNeural"),
-    "ml-IN": v("ml-IN-MidhunNeural", "ml-IN-SobhanaNeural", "ml-IN-SobhanaNeural", "ml-IN-MidhunNeural"),
+    # Marathi / Malayalam: Azure only ships one neural voice per gender (Jun 2026).
+    "mr-IN": {"male": ["mr-IN-ManoharNeural"], "female": ["mr-IN-AarohiNeural"]},
+    "ml-IN": {"male": ["ml-IN-MidhunNeural"], "female": ["ml-IN-SobhanaNeural"]},
 }
-
-_AZURE["ml-IN"] = v("ml-IN-MidhunNeural", "ml-IN-ArjunNeural", "ml-IN-SobhanaNeural", "ml-IN-MayaNeural")
 
 _POLLY: Dict[str, VoicePool] = {
     "en-US": v("Matthew", "Stephen", "Joanna", "Ruth"),
