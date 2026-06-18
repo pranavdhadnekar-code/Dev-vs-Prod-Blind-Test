@@ -1139,10 +1139,6 @@ class ElevenLabsV3TTSProvider(TTSProvider):
         """Generate speech using ElevenLabs v3 TTS API"""
         start_time = time.time()
         
-        # Fetch voices from API if not already fetched
-        if not self._voices_fetched:
-            await self._fetch_voices_from_api()
-        
         # Validate request
         is_valid, error_msg = self.validate_request(request)
         if not is_valid:
@@ -1154,11 +1150,16 @@ class ElevenLabsV3TTSProvider(TTSProvider):
                 error_message=error_msg,
                 metadata={}
             )
-        
-        # Get voice ID from map - try fetched IDs first, then fallback
-        voice_id = self.voice_id_map.get(request.voice)
-        if not voice_id:
-            voice_id = self.fallback_voice_id_map.get(request.voice)
+
+        # Arena registry stores ElevenLabs voice_id strings directly.
+        if request.voice in self.config.supported_voices:
+            voice_id = request.voice
+        else:
+            if not self._voices_fetched:
+                await self._fetch_voices_from_api()
+            voice_id = self.voice_id_map.get(request.voice)
+            if not voice_id:
+                voice_id = self.fallback_voice_id_map.get(request.voice)
             if not voice_id:
                 return TTSResult(
                     success=False,
@@ -1386,8 +1387,20 @@ class CartesiaTTSProvider(TTSProvider):
                 metadata={}
             )
         
-        # Get voice ID from friendly name
-        voice_id = self.voice_id_map.get(request.voice, self.voice_id_map["Conversational Lady"])
+        # Arena registry stores Cartesia voice UUIDs directly.
+        if request.voice in self.config.supported_voices:
+            voice_id = request.voice
+        else:
+            voice_id = self.voice_id_map.get(request.voice)
+            if not voice_id:
+                return TTSResult(
+                    success=False,
+                    audio_data=None,
+                    latency_ms=0,
+                    file_size_bytes=0,
+                    error_message=f"Voice '{request.voice}' not supported for Cartesia.",
+                    metadata={"provider": self.provider_id},
+                )
         
         headers = {
             "X-API-Key": self.api_key,

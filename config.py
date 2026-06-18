@@ -14,6 +14,9 @@ except ImportError:
 from arena_language_registry import (
     ARENA_LANGUAGES,
     MURF_VOICE_GENDERS,
+    _CARTESIA,
+    _DEEPGRAM,
+    _ELEVENLABS,
     _MURF_DEV_FALCON,
     _MURF_PROD,
     build_provider_languages,
@@ -307,16 +310,19 @@ def _voice_info_from(pairs: List[tuple], accent: str = "US") -> Dict[str, VoiceI
     return out
 
 
+def _voice_info_from_pools(pools: Dict[str, Dict[str, List[str]]], prefix: str) -> Dict[str, VoiceInfo]:
+    """Build voice_info from per-language male/female pools (voice id keys)."""
+    out: Dict[str, VoiceInfo] = {}
+    for lang, pool in pools.items():
+        for gender, ids in pool.items():
+            for n, vid in enumerate(ids, 1):
+                out[vid] = VoiceInfo(
+                    vid, f"{prefix} {lang} {gender[0].upper()}{n}", gender)
+    return out
+
+
 # --- Competitor voice catalogs (id, display name, gender) --------------------
-_ELEVENLABS_VOICES = _voice_info_from([
-    ("Laura", "Laura", "female"),
-    ("Jessica", "Jessica", "female"),
-    ("Elizabeth", "Elizabeth", "female"),
-    ("Liam", "Liam", "male"),
-    ("Jarnathan", "Jarnathan", "male"),
-    ("Dan", "Dan", "male"),
-    ("Nathaniel", "Nathaniel", "male"),
-])
+_ELEVENLABS_VOICES = _voice_info_from_pools(_ELEVENLABS, "ElevenLabs")
 
 _DEEPGRAM_AURA1_VOICES = _voice_info_from([
     ("aura-asteria-en", "Asteria", "female"),
@@ -333,16 +339,7 @@ _DEEPGRAM_AURA1_VOICES = _voice_info_from([
     ("aura-zeus-en", "Zeus", "male"),
 ])
 
-_DEEPGRAM_AURA2_VOICES = _voice_info_from([
-    ("aura-2-thalia-en", "Thalia", "female"),
-    ("aura-2-andromeda-en", "Andromeda", "female"),
-    ("aura-2-helena-en", "Helena", "female"),
-    ("aura-2-hera-en", "Hera", "female"),
-    ("aura-2-apollo-en", "Apollo", "male"),
-    ("aura-2-arcas-en", "Arcas", "male"),
-    ("aura-2-aries-en", "Aries", "male"),
-    ("aura-2-orion-en", "Orion", "male"),
-])
+_DEEPGRAM_AURA2_VOICES = _voice_info_from_pools(_DEEPGRAM, "Deepgram")
 
 _OPENAI_VOICES = _voice_info_from([
     ("nova", "Nova", "female"),
@@ -353,15 +350,7 @@ _OPENAI_VOICES = _voice_info_from([
     ("fable", "Fable", "male"),
 ])
 
-_CARTESIA_VOICES = _voice_info_from([
-    ("British Lady", "British Lady", "female"),
-    ("Conversational Lady", "Conversational Lady", "female"),
-    ("Midwestern Woman", "Midwestern Woman", "female"),
-    ("Classy British Man", "Classy British Man", "male"),
-    ("Friendly Reading Man", "Friendly Reading Man", "male"),
-    ("Professional Man", "Professional Man", "male"),
-    ("Newsman", "Newsman", "male"),
-])
+_CARTESIA_VOICES = _voice_info_from_pools(_CARTESIA, "Cartesia")
 
 _SARVAM_VOICES = _voice_info_from([
     ("en-IN-female", "Female (English-India)", "female"),
@@ -815,8 +804,8 @@ LANGUAGE_TO_UI_LOCALE: Dict[str, str] = {
     "ml-IN": "ML",
 }
 
-# Per-provider languages with 2 male + 2 female voice ids per language.
-# Scheduler uses the first id for each gender (see representative_voice).
+# Per-provider languages with up to 2 male + 2 female voice ids per language.
+# Scheduler picks one at random per gender (see language_voices).
 PROVIDER_LANGUAGES = build_provider_languages(is_falcon_dev_stream())
 
 # --- Overall rating: business weights per language (DISCLOSED) ----------------
@@ -880,7 +869,11 @@ def provider_supports_language(provider_id: str, language: str) -> bool:
 
 
 def representative_voice(provider_id: str, language: str, gender: str) -> Optional[str]:
-    """Pinned representative voice id for a (provider, language, gender)."""
+    """First configured voice id for a (provider, language, gender).
+
+    Used for health probes and other pinned checks; battles randomize via
+    language_voices().
+    """
     raw = PROVIDER_LANGUAGES.get(provider_id, {}).get(language, {}).get(gender)
     if raw is None:
         return None

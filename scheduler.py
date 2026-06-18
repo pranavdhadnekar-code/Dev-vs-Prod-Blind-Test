@@ -232,16 +232,18 @@ class Scheduler:
         self._rotation_last[language] = key
         return by_key[key]
 
-    def _voice_for(self, provider: str, language: str, gender: str) -> str:
-        v = config.representative_voice(provider, language, gender)
-        if v is None:
+    def _voice_for(
+        self, provider: str, language: str, gender: str, rng: random.Random,
+    ) -> str:
+        voices = config.language_voices(provider, language, gender)
+        if not voices:
             cfg = config.TTS_PROVIDERS.get(provider)
             provider_label = cfg.name if cfg else provider
             lang_label = config.get_language_display(language)
             raise SchedulerError(
                 f"{provider_label} does not support {gender} voices in {lang_label}."
             )
-        return v
+        return rng.choice(voices)
 
     def next_battle(
         self,
@@ -270,8 +272,8 @@ class Scheduler:
         if item is None:
             item = rng.choice(items)
 
-        va = self._voice_for(m.provider_a, language, chosen_gender)
-        vb = self._voice_for(m.provider_b, language, chosen_gender)
+        va = self._voice_for(m.provider_a, language, chosen_gender, rng)
+        vb = self._voice_for(m.provider_b, language, chosen_gender, rng)
 
         position_seed = rng.getrandbits(31)
         swap = assign_sides(m.provider_a, m.provider_b, position_seed)
@@ -321,8 +323,8 @@ class Scheduler:
             if not items:
                 raise SchedulerError(f"No corpus items for language '{language}'.")
             item = rng.choice(items)
-            va = self._voice_for(m.provider_a, language, chosen_gender)
-            vb = self._voice_for(m.provider_b, language, chosen_gender)
+            va = self._voice_for(m.provider_a, language, chosen_gender, rng)
+            vb = self._voice_for(m.provider_b, language, chosen_gender, rng)
             position_seed = rng.getrandbits(31)
             swap = assign_sides(m.provider_a, m.provider_b, position_seed)
             if swap:

@@ -24,22 +24,106 @@ ARENA_LANGUAGES: Dict[str, str] = {
     "ml-IN": "Malayalam (India)",
 }
 
-# Multilingual competitors (English voice pool reused; models read other scripts).
-_EL_M = ("Liam", "Dan")
-_EL_F = ("Laura", "Jessica")
+# Per-language ElevenLabs voice ids (Flash 2.5).
+_ELEVENLABS: Dict[str, VoicePool] = {
+    "en-US": v("S9GPGBaMND8XWwwzxQXp", "bfGb7JTLUnZebZRiFYyq", "r1KmysJdVYZjJCm4mL3b", "hA4zGnmTwX2NQiTRMt7o"),
+    "en-IN": v("37frHvUllvzviJDpT2Qa", "u7bRcYbD7visSINTyAT8", "ecp3DWciuUyW7BYM7II1", "6qL48o1LBmtR94hIYAQh"),
+    "en-UK": v("auq43ws1oslv0tO4BDa7", "lUTamkMw7gOzZbFIwmq4", "4CrZuIW9am7gYAxgo2Af", "Gv42yFG3G6CHLsU5y8g6"),
+    "hi-IN": v("3AMU7jXQuQa3oRvRqUmb", "iWNf11sz1GrUE4ppxTOL", "JS6C6yu2x9Byh4i1a8lX", "Ek86tj0PS0XTYchY9Ody"),
+    "ta-IN": v("ConvFtidCOyEp2P5a1nK", "yIFUVClxedWzoMYhk15k", "mGboHvCVOXWYeFL8KTR0", "Nda4CxqYPMJ65wadFnhJ"),
+    "fr-FR": v("NyxenPOqNyllHIzSoPbJ", "IbbR6Av0dWuQJS0b8JVT", "OhWejZm6c7D8CIm5epRM", "lvQdCgwZfBuOzxyV5pxu"),
+    "es-ES": v("ByVRQtaK1WDOvTmP1PKO", "LlZr3QuzbW4WrPjgATHG", "dNjJKg63Fr5AXwIdkATa", "ewn5JTa3lNPY8QVuZJi6"),
+}
 _DG_M = ("aura-2-apollo-en", "aura-2-orion-en")
 _DG_F = ("aura-2-thalia-en", "aura-2-helena-en")
 # Deepgram Aura-2 native voice ids per language (es = Peninsular/Spain,
 # fr = France). French currently ships a single voice per gender.
 _DEEPGRAM: Dict[str, VoicePool] = {
     "en-US": v(*_DG_M, *_DG_F),
-    "en-IN": v(*_DG_M, *_DG_F),
-    "en-UK": v(*_DG_M, *_DG_F),
+    "en-UK": {"male": ["aura-2-draco-en"], "female": ["aura-2-pandora-en"]},
     "es-ES": v("aura-2-nestor-es", "aura-2-alvaro-es", "aura-2-carina-es", "aura-2-diana-es"),
     "fr-FR": {"male": ["aura-2-hector-fr"], "female": ["aura-2-agathe-fr"]},
 }
-_CT_M = ("Professional Man", "Classy British Man")
-_CT_F = ("Conversational Lady", "British Lady")
+# Per-language Cartesia Sonic voice ids (UUID).
+_CARTESIA: Dict[str, VoicePool] = {
+    "en-US": {
+        "male": [
+            "630ed21c-2c5c-41cf-9d82-10a7fd668370",
+            "47c38ca4-5f35-497b-b1a3-415245fb35e1",
+            "f786b574-daa5-4673-aa0c-cbe3e8534c02",
+        ],
+        "female": ["db6b0ed5-d5d3-463d-ae85-518a07d3c2b4"],
+    },
+    "en-IN": {
+        "male": [
+            "638efaaa-4d0c-442e-b701-3fae16aad012",
+            "1259b7e3-cb8a-43df-9446-30971a46b8b0",
+        ],
+        "female": [
+            "3b554273-4299-48b9-9aaf-eefd438e3941",
+            "7ea5e9c2-b719-4dc3-b870-5ba5f14d31d8",
+        ],
+    },
+    "en-UK": {
+        "male": [
+            "ef191366-f52f-447a-a398-ed8c0f2943a1",
+            "4bc3cb8c-adb9-4bb8-b5d5-cbbef950b991",
+        ],
+        "female": [
+            "62ae83ad-4f6a-430b-af41-a9bede9286ca",
+            "2f251ac3-89a9-4a77-a452-704b474ccd01",
+        ],
+    },
+    "hi-IN": {
+        "male": [
+            "4877b818-c7fe-4c89-b1cf-eadf8e23da72",
+            "098fb15d-2597-4186-8b74-25340050b6e7",
+        ],
+        "female": [
+            "faf0731e-dfb9-4cfc-8119-259a79b27e12",
+            "95d51f79-c397-46f9-b49a-23763d3eaa2d",
+        ],
+    },
+    "bn-IN": {
+        "male": ["2ba861ea-7cdc-43d1-8608-4045b5a41de5"],
+        "female": ["59ba7dee-8f9a-432f-a6c0-ffb33666b654"],
+    },
+    "ta-IN": {
+        "male": [],
+        "female": [
+            "80e4e2b3-ec54-4930-97ac-667eba950352",
+            "4014f0c9-d3eb-4eca-af2b-fd6004f526be",
+        ],
+    },
+    "fr-FR": {
+        "male": [
+            "0418348a-0ca2-4e90-9986-800fb8b3bbc0",
+            "7345dfa5-ee04-44d2-abf4-29262b880ab4",
+        ],
+        "female": [
+            "7c58f4a4-a72c-42fa-a503-41b9408820f3",
+            "faa75703-00e3-4a57-9955-0703001e3231",
+        ],
+    },
+    "es-ES": {
+        "male": [
+            "13ff5deb-2591-42ad-a356-63a04e524411",
+            "02aeee94-c02b-456e-be7a-659672acf82d",
+        ],
+        "female": [
+            "9d8c6b2e-0a23-4a15-ae1b-121d5b5af417",
+            "538a8872-3799-4df5-b373-b78493b766c6",
+        ],
+    },
+    "mr-IN": {
+        "male": ["f227bc18-3704-47fe-b759-8c78a450fdfa"],
+        "female": ["5c32dce6-936a-4892-b131-bafe474afe5f"],
+    },
+    "ml-IN": {
+        "male": ["374b80da-e622-4dfc-90f6-1eeb13d331c9"],
+        "female": ["b426013c-002b-4e89-8874-8cd20b68373a"],
+    },
+}
 _OAI_M = ("onyx", "echo")
 _OAI_F = ("nova", "shimmer")
 
@@ -145,7 +229,7 @@ PROVIDER_SUPPORTED_LANGUAGES: Dict[str, set] = {
     "omni_tts": set(_ALL_LANGS),            # Murf native voices for all
     "murf_gen2": set(_ALL_LANGS),           # Murf native voices for all
     "elevenlabs_v3": {"en-US", "en-IN", "en-UK", "hi-IN", "ta-IN", "fr-FR", "es-ES"},
-    "deepgram_aura2": {"en-US", "en-IN", "en-UK", "fr-FR", "es-ES"},  # native en/fr/es voices
+    "deepgram_aura2": {"en-US", "en-UK", "fr-FR", "es-ES"},  # native en/fr/es voices
     "cartesia_sonic3": set(_ALL_LANGS),     # Sonic 3.5 covers all 10
     "openai": set(_ALL_LANGS),              # multilingual, voice-agnostic
     "sarvam_bulbul_v3": {"en-IN", "hi-IN", "bn-IN", "ta-IN", "mr-IN", "ml-IN"},
@@ -158,15 +242,13 @@ PROVIDER_SUPPORTED_LANGUAGES: Dict[str, set] = {
 def build_provider_languages(omni_dev: bool = True) -> Dict[str, Dict[str, VoicePool]]:
     # Falcon 2 (omni_tts) always uses its own voice catalog, independent of Murf Gen2.
     murf_omni = dict(_MURF_DEV_FALCON)
-    el = v(*_EL_M, *_EL_F)
-    ct = v(*_CT_M, *_CT_F)
     oai = v(*_OAI_M, *_OAI_F)
     raw = {
         "omni_tts": dict(murf_omni),
         "murf_gen2": dict(_MURF_PROD),
-        "elevenlabs_v3": _multilingual(el),
+        "elevenlabs_v3": dict(_ELEVENLABS),
         "deepgram_aura2": dict(_DEEPGRAM),
-        "cartesia_sonic3": _multilingual(ct),
+        "cartesia_sonic3": dict(_CARTESIA),
         "openai": _multilingual(oai),
         "sarvam_bulbul_v3": dict(_SARVAM),
         "google_tts": dict(_GOOGLE),
