@@ -1715,8 +1715,8 @@ class SarvamBulbulV3TTSProvider(TTSProvider):
             "ta-IN-female-2": "tanya",
             "mr-IN-male": "advait",
             "mr-IN-male-2": "manan",
-            "mr-IN-female": "sophia",
-            "mr-IN-female-2": "amelia",
+            "mr-IN-female": "roopa",
+            "mr-IN-female-2": "rupali",
             "ml-IN-male": "gokul",
             "ml-IN-male-2": "vijay",
             "ml-IN-female": "shruti",
@@ -1747,7 +1747,8 @@ class SarvamBulbulV3TTSProvider(TTSProvider):
             "Content-Type": "application/json"
         }
         
-        language = request.voice.rsplit("-", 1)[0] if "-" in request.voice else "en-IN"
+        bits = request.voice.split("-")
+        language = f"{bits[0]}-{bits[1]}" if len(bits) >= 2 else "en-IN"
         if language not in self._sarvam_languages:
             language = "en-IN"
         
