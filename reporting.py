@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import math
 import uuid
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -59,6 +61,214 @@ def pair_tally(outcomes: List[Dict], p1: str, p2: str) -> Dict[str, int]:
             "n": p1_wins + p2_wins + ties}
 
 
+def _outcome_triplet(row: Dict) -> Dict[str, str]:
+    return {
+        "provider_a": row["provider_a"],
+        "provider_b": row["provider_b"],
+        "outcome": row["outcome"],
+    }
+
+
+def _partition_by_language(rows: List[Dict], lang_key: str = "language") -> Dict[str, List[Dict]]:
+    out: Dict[str, List[Dict]] = defaultdict(list)
+    for row in rows:
+        lang = row.get(lang_key)
+        if lang:
+            out[lang].append(row)
+    return dict(out)
+
+
+def winrate_grid_from_outcomes(outcomes: List[Dict], anchor: str) -> List[Dict]:
+    """Omni-vs-each-competitor preference rate (ties excluded from rate)."""
+    competitors = sorted({
+        (o["provider_a"] if o["provider_b"] == anchor else o["provider_b"])
+        for o in outcomes
+        if anchor in (o["provider_a"], o["provider_b"])
+        and o["provider_a"] != o["provider_b"]
+    } - {anchor})
+    rows = []
+    for comp in competitors:
+        t = pair_tally(outcomes, anchor, comp)
+        decisive = t["p1_wins"] + t["p2_wins"]
+        rate = (t["p1_wins"] / decisive) if decisive else float("nan")
+        lo, hi = wilson_ci(t["p1_wins"], decisive) if decisive else (float("nan"), float("nan"))
+        rows.append({
+            "competitor": comp,
+            "competitor_name": _name(comp),
+            "anchor_preferred": t["p1_wins"],
+            "competitor_preferred": t["p2_wins"],
+            "ties": t["ties"],
+            "n": t["n"],
+            "anchor_win_rate": rate,
+            "ci_low": lo,
+            "ci_high": hi,
+            "directly_measured": True,
+        })
+    return rows
+
+
+def anchor_voice_winrate_from_rows(voice_rows: List[Dict], anchor: str) -> List[Dict]:
+    """Per-anchor-voice preference rate vs. all competitors."""
+    agg: Dict[str, Dict] = {}
+    for r in voice_rows:
+        lp, rp = r["left_provider"], r["right_provider"]
+        if anchor not in (lp, rp) or lp == rp:
+            continue
+        if lp == anchor:
+            voice, anchor_side, competitor = r["left_voice"], "A", rp
+        else:
+            voice, anchor_side, competitor = r["right_voice"], "B", lp
+        if not voice:
+            continue
+        cell = agg.setdefault(
+            voice, {"wins": 0, "losses": 0, "ties": 0, "losses_by": {}})
+        outcome = r["outcome"]
+        if outcome == "tie":
+            cell["ties"] += 1
+        elif outcome == anchor_side:
+            cell["wins"] += 1
+        else:
+            cell["losses"] += 1
+            cell["losses_by"][competitor] = cell["losses_by"].get(competitor, 0) + 1
+
+    out = []
+    for voice, c in agg.items():
+        decisive = c["wins"] + c["losses"]
+        rate = (c["wins"] / decisive) if decisive else float("nan")
+        lo, hi = wilson_ci(c["wins"], decisive) if decisive else (float("nan"), float("nan"))
+        loses_to = sorted(c["losses_by"].items(), key=lambda kv: (-kv[1], kv[0]))
+        out.append({
+            "voice": voice,
+            "voice_name": _voice_label(anchor, voice),
+            "gender": config.get_voice_gender(anchor, voice),
+            "anchor_preferred": c["wins"],
+            "competitor_preferred": c["losses"],
+            "ties": c["ties"],
+            "n": decisive + c["ties"],
+            "anchor_win_rate": rate,
+            "ci_low": lo,
+            "ci_high": hi,
+            "loses_to": [
+                {"competitor": comp, "competitor_name": _name(comp), "losses": cnt}
+                for comp, cnt in loses_to
+            ],
+            "loses_to_label": ", ".join(f"{_name(comp)} ({cnt})" for comp, cnt in loses_to) or "—",
+            "directly_measured": True,
+        })
+    out.sort(key=lambda r: (-r["n"], r["voice"]))
+    return out
+
+
+def _heatmap_cells(
+    winrate_by_lang: Dict[str, List[Dict]],
+    lang_display,
+) -> List[Dict]:
+    cells = []
+    for lang, grid in sorted(winrate_by_lang.items()):
+        label = lang_display(lang)
+        for row in grid:
+            decisive = row["anchor_preferred"] + row["competitor_preferred"]
+            rate = (row["anchor_preferred"] / decisive) if decisive else 0.5
+            cells.append({
+                "language": label,
+                "competitor": row["competitor_name"],
+                "win_rate": rate,
+                "n": row["n"],
+            })
+    return cells
+
+
+@dataclass(frozen=True)
+class LeaderboardBundle:
+    """Precomputed, cache-friendly leaderboard payload (no DB, no numpy)."""
+    anchor: str
+    languages: Tuple[str, ...]
+    fits_meta: Dict[str, Dict[str, int]]
+    head_to_head: Tuple[Dict, ...]
+    winrate_by_lang: Dict[str, Tuple[Dict, ...]]
+    heatmap_cells: Tuple[Dict, ...]
+    overall_rows: Tuple[Dict, ...]
+    voice_by_lang: Dict[str, Tuple[Dict, ...]]
+    language_weights: Dict[str, float]
+
+
+def build_leaderboard_bundle(
+    outcomes_with_lang: List[Dict],
+    voice_with_lang: List[Dict],
+    engine: Optional[RatingEngine] = None,
+) -> LeaderboardBundle:
+    """Fit ratings and aggregate all leaderboard series from one in-memory fetch."""
+    engine = engine or RatingEngine()
+    anchor = engine.anchor
+
+    outcomes_by_lang = _partition_by_language(outcomes_with_lang)
+    voice_by_lang_raw = _partition_by_language(voice_with_lang)
+
+    fits: Dict[str, LanguageFit] = {}
+    for lang, lang_outcomes in sorted(outcomes_by_lang.items()):
+        triplets = [_outcome_triplet(o) for o in lang_outcomes if o.get("provider_a") and o.get("provider_b")]
+        if triplets:
+            fits[lang] = engine.fit_language(triplets, lang)
+
+    if not fits:
+        return LeaderboardBundle(
+            anchor=anchor,
+            languages=tuple(),
+            fits_meta={},
+            head_to_head=tuple(),
+            winrate_by_lang={},
+            heatmap_cells=tuple(),
+            overall_rows=tuple(),
+            voice_by_lang={},
+            language_weights={},
+        )
+
+    all_triplets = [
+        _outcome_triplet(o)
+        for o in outcomes_with_lang
+        if o.get("provider_a") and o.get("provider_b")
+    ]
+    weights = config.language_weights(list(fits.keys()))
+    overall = engine.fit_overall(fits, weights)
+    report = ArenaReport(object(), engine=engine)
+    overall_rows = report.overall_leaderboard(overall)
+
+    winrate_by_lang = {
+        lang: winrate_grid_from_outcomes(
+            [_outcome_triplet(o) for o in outcomes_by_lang.get(lang, [])],
+            anchor,
+        )
+        for lang in fits
+    }
+    voice_by_lang = {
+        lang: anchor_voice_winrate_from_rows(voice_by_lang_raw.get(lang, []), anchor)
+        for lang in fits
+    }
+
+    return LeaderboardBundle(
+        anchor=anchor,
+        languages=tuple(fits.keys()),
+        fits_meta={
+            lang: {"n_comparisons": fit.n_comparisons, "n_ties": fit.n_ties}
+            for lang, fit in fits.items()
+        },
+        head_to_head=tuple(winrate_grid_from_outcomes(all_triplets, anchor)),
+        winrate_by_lang={k: tuple(v) for k, v in winrate_by_lang.items()},
+        heatmap_cells=tuple(_heatmap_cells(
+            {k: list(v) for k, v in winrate_by_lang.items()},
+            config.get_language_display,
+        )),
+        overall_rows=tuple(overall_rows),
+        voice_by_lang={k: tuple(v) for k, v in voice_by_lang.items()},
+        language_weights=weights,
+    )
+
+
+def leaderboard_cache_key(votes: int, battles: int, outcomes_with_lang: List[Dict]) -> str:
+    triplets = [_outcome_triplet(o) for o in outcomes_with_lang if o.get("provider_a") and o.get("provider_b")]
+    return f"{votes}:{battles}:{inputs_hash(triplets)}"
+
+
 # --- orchestration -----------------------------------------------------------
 class ArenaReport:
     def __init__(self, db, engine: Optional[RatingEngine] = None):
@@ -69,8 +279,13 @@ class ArenaReport:
     def languages(self) -> List[str]:
         return self.db.get_languages_with_votes()
 
-    def fit_all(self) -> Dict[str, LanguageFit]:
+    def fit_all(self, outcomes_by_lang: Optional[Dict[str, List[Dict]]] = None) -> Dict[str, LanguageFit]:
         fits: Dict[str, LanguageFit] = {}
+        if outcomes_by_lang is not None:
+            for lang, outcomes in sorted(outcomes_by_lang.items()):
+                if outcomes:
+                    fits[lang] = self.engine.fit_language(outcomes, lang)
+            return fits
         for lang in self.languages():
             outcomes = self.db.get_outcomes(lang)
             if outcomes:
@@ -83,88 +298,26 @@ class ArenaReport:
         return self.engine.fit_overall(fits, weights)
 
     # -- win-rate grid (directly measured) --
-    def winrate_grid(self, language: Optional[str] = None) -> List[Dict]:
+    def winrate_grid(
+        self,
+        language: Optional[str] = None,
+        outcomes: Optional[List[Dict]] = None,
+    ) -> List[Dict]:
         """Omni-vs-each-competitor preference rate (ties excluded from rate)."""
-        outcomes = self.db.get_outcomes(language)
-        competitors = sorted({
-            (o["provider_a"] if o["provider_b"] == self.anchor else o["provider_b"])
-            for o in outcomes
-            if self.anchor in (o["provider_a"], o["provider_b"])
-            and o["provider_a"] != o["provider_b"]
-        } - {self.anchor})
-        rows = []
-        for comp in competitors:
-            t = pair_tally(outcomes, self.anchor, comp)
-            decisive = t["p1_wins"] + t["p2_wins"]
-            rate = (t["p1_wins"] / decisive) if decisive else float("nan")
-            lo, hi = wilson_ci(t["p1_wins"], decisive) if decisive else (float("nan"), float("nan"))
-            rows.append({
-                "competitor": comp,
-                "competitor_name": _name(comp),
-                "anchor_preferred": t["p1_wins"],
-                "competitor_preferred": t["p2_wins"],
-                "ties": t["ties"],
-                "n": t["n"],
-                "anchor_win_rate": rate,
-                "ci_low": lo,
-                "ci_high": hi,
-                "directly_measured": True,
-            })
-        return rows
+        if outcomes is None:
+            outcomes = self.db.get_outcomes(language)
+        return winrate_grid_from_outcomes(outcomes, self.anchor)
 
-    # -- anchor per-voice win rate (directly measured) --
-    def anchor_voice_winrate(self, language: Optional[str] = None) -> List[Dict]:
+    def anchor_voice_winrate(
+        self,
+        language: Optional[str] = None,
+        voice_rows: Optional[List[Dict]] = None,
+    ) -> List[Dict]:
         """Per-anchor-voice preference rate vs. all competitors (ties excluded
         from the rate). Directly measured from the served clips."""
-        rows = self.db.get_voice_outcomes(language)
-        agg: Dict[str, Dict] = {}
-        for r in rows:
-            lp, rp = r["left_provider"], r["right_provider"]
-            if self.anchor not in (lp, rp) or lp == rp:
-                continue
-            if lp == self.anchor:
-                voice, anchor_side, competitor = r["left_voice"], "A", rp
-            else:
-                voice, anchor_side, competitor = r["right_voice"], "B", lp
-            if not voice:
-                continue
-            cell = agg.setdefault(
-                voice, {"wins": 0, "losses": 0, "ties": 0, "losses_by": {}})
-            outcome = r["outcome"]
-            if outcome == "tie":
-                cell["ties"] += 1
-            elif outcome == anchor_side:
-                cell["wins"] += 1
-            else:
-                cell["losses"] += 1
-                cell["losses_by"][competitor] = cell["losses_by"].get(competitor, 0) + 1
-
-        out = []
-        for voice, c in agg.items():
-            decisive = c["wins"] + c["losses"]
-            rate = (c["wins"] / decisive) if decisive else float("nan")
-            lo, hi = wilson_ci(c["wins"], decisive) if decisive else (float("nan"), float("nan"))
-            loses_to = sorted(c["losses_by"].items(), key=lambda kv: (-kv[1], kv[0]))
-            out.append({
-                "voice": voice,
-                "voice_name": _voice_label(self.anchor, voice),
-                "gender": config.get_voice_gender(self.anchor, voice),
-                "anchor_preferred": c["wins"],
-                "competitor_preferred": c["losses"],
-                "ties": c["ties"],
-                "n": decisive + c["ties"],
-                "anchor_win_rate": rate,
-                "ci_low": lo,
-                "ci_high": hi,
-                "loses_to": [
-                    {"competitor": comp, "competitor_name": _name(comp), "losses": cnt}
-                    for comp, cnt in loses_to
-                ],
-                "loses_to_label": ", ".join(f"{_name(comp)} ({cnt})" for comp, cnt in loses_to) or "—",
-                "directly_measured": True,
-            })
-        out.sort(key=lambda r: (-r["n"], r["voice"]))
-        return out
+        if voice_rows is None:
+            voice_rows = self.db.get_voice_outcomes(language)
+        return anchor_voice_winrate_from_rows(voice_rows, self.anchor)
 
     # -- per-language leaderboard --
     def language_leaderboard(self, fit: LanguageFit) -> List[Dict]:

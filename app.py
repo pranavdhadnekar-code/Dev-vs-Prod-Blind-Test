@@ -192,6 +192,19 @@ def _name(provider_id: str) -> str:
     return cfg.name if cfg else provider_id
 
 
+@st.cache_data(show_spinner=False)
+def _cached_leaderboard_bundle(
+    cache_key: str,
+    outcomes_json: str,
+    voices_json: str,
+) -> reporting.LeaderboardBundle:
+    """Heavy rating + aggregation; invalidated when cache_key changes (votes / hash)."""
+    return reporting.build_leaderboard_bundle(
+        json.loads(outcomes_json),
+        json.loads(voices_json),
+    )
+
+
 def de_anonymize_comment(comment: str, left_id: str, right_id: str) -> str:
     """Map Sample A/B, A/B, and Left/Right tokens to real provider names."""
     if not comment:
@@ -583,79 +596,105 @@ def battle_page():
 
 def leaderboard_page():
     st.title(Leaderboard.TITLE)
-    report = reporting.ArenaReport(db)
+    anchor = config.anchor_provider()
     counts = db.get_vote_counts()
     m1, m2, m3 = st.columns(3)
     m1.metric(Leaderboard.METRIC_VOTES, counts["votes"])
     m2.metric(Leaderboard.METRIC_COMPARISONS, counts["battles"])
-    m3.metric(Leaderboard.METRIC_REFERENCE, _name(report.anchor))
+    m3.metric(Leaderboard.METRIC_REFERENCE, _name(anchor))
 
-    fits = report.fit_all()
-    if not fits:
+    inputs = db.fetch_leaderboard_inputs()
+    cache_key = reporting.leaderboard_cache_key(
+        counts["votes"], counts["battles"], inputs["outcomes"],
+    )
+    with st.spinner(Leaderboard.LOADING):
+        bundle = _cached_leaderboard_bundle(
+            cache_key,
+            json.dumps(inputs["outcomes"], sort_keys=True),
+            json.dumps(inputs["voices"], sort_keys=True),
+        )
+
+    if not bundle.languages:
         st.info(Leaderboard.NO_DATA)
         return
 
     st.caption(Leaderboard.COLOR_LEGEND)
 
     st.markdown(f"### {Leaderboard.HEAD_TO_HEAD}")
-    grid = report.winrate_grid(None)
-    if grid:
+    if bundle.head_to_head:
         st.plotly_chart(
-            lb_charts.outcome_stacked_bar(lb_charts.prep_head_to_head(grid)),
+            lb_charts.outcome_stacked_bar(
+                lb_charts.prep_head_to_head(list(bundle.head_to_head)),
+            ),
             use_container_width=True,
         )
     else:
         st.info(Leaderboard.NO_DATA)
 
     st.markdown(f"### {Leaderboard.OVERALL}")
-    weights = config.language_weights(list(fits.keys()))
     st.caption(Leaderboard.WEIGHTS.format(weights=", ".join(
-        f"{config.get_language_display(l)} {w*100:.0f}%" for l, w in weights.items())))
-    overall = report.overall(fits)
-    orows = report.overall_leaderboard(overall)
-    if orows:
-        st.plotly_chart(lb_charts.forest_plot(orows), use_container_width=True)
-
-    st.markdown(f"### {Leaderboard.PER_LANGUAGE}")
-    heatmap_cells = lb_charts.prep_heatmap_cells(
-        report, fits, config.get_language_display)
-    if heatmap_cells:
+        f"{config.get_language_display(l)} {bundle.language_weights[l] * 100:.0f}%"
+        for l in bundle.languages
+    )))
+    if bundle.overall_rows:
         st.plotly_chart(
-            lb_charts.language_winrate_heatmap(heatmap_cells),
+            lb_charts.forest_plot(list(bundle.overall_rows)),
             use_container_width=True,
         )
-    for lang, fit in fits.items():
-        with st.expander(config.get_language_display(lang)):
-            st.caption(Leaderboard.LANG_SUMMARY.format(n=fit.n_comparisons, ties=fit.n_ties))
-            battle_counts = db.get_competitor_battle_counts(lang)
-            if battle_counts:
-                breakdown = ", ".join(
-                    f"{_name(pid)} {n}" for pid, n in sorted(
-                        battle_counts.items(), key=lambda kv: (-kv[1], kv[0]))
-                )
-                st.caption(Leaderboard.BATTLES_BY_COMPETITOR.format(breakdown=breakdown))
-            lang_grid = report.winrate_grid(lang)
-            if lang_grid:
-                st.plotly_chart(
-                    lb_charts.outcome_stacked_bar(lb_charts.prep_head_to_head(lang_grid)),
-                    use_container_width=True,
-                )
+
+    st.markdown(f"### {Leaderboard.PER_LANGUAGE}")
+    if bundle.heatmap_cells:
+        st.plotly_chart(
+            lb_charts.language_winrate_heatmap(list(bundle.heatmap_cells)),
+            use_container_width=True,
+        )
+
+    lang_pick = st.selectbox(
+        Leaderboard.LANG_DETAIL_PICK,
+        options=[""] + list(bundle.languages),
+        format_func=lambda code: (
+            Leaderboard.LANG_DETAIL_NONE if not code
+            else config.get_language_display(code)
+        ),
+    )
+    if lang_pick:
+        meta = bundle.fits_meta[lang_pick]
+        st.caption(Leaderboard.LANG_SUMMARY.format(
+            n=meta["n_comparisons"], ties=meta["n_ties"],
+        ))
+        battle_counts = db.get_competitor_battle_counts(lang_pick)
+        if battle_counts:
+            breakdown = ", ".join(
+                f"{_name(pid)} {n}" for pid, n in sorted(
+                    battle_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            )
+            st.caption(Leaderboard.BATTLES_BY_COMPETITOR.format(breakdown=breakdown))
+        lang_grid = bundle.winrate_by_lang.get(lang_pick, ())
+        if lang_grid:
+            st.plotly_chart(
+                lb_charts.outcome_stacked_bar(
+                    lb_charts.prep_head_to_head(list(lang_grid)),
+                ),
+                use_container_width=True,
+            )
 
     st.markdown(f"### {Leaderboard.VOICE_BREAKDOWN}")
-    vtabs = st.tabs([config.get_language_display(l) for l in fits])
-    for tab, lang in zip(vtabs, fits):
-        with tab:
-            vrows = report.anchor_voice_winrate(lang)
-            if not vrows:
-                st.info(Leaderboard.VOICE_NO_DATA)
-            else:
-                st.plotly_chart(
-                    lb_charts.outcome_stacked_bar(
-                        lb_charts.prep_voice_rows(vrows),
-                        scale_low_n=True,
-                    ),
-                    use_container_width=True,
-                )
+    voice_lang = st.selectbox(
+        Leaderboard.VOICE_LANG_PICK,
+        options=list(bundle.languages),
+        format_func=config.get_language_display,
+    )
+    vrows = bundle.voice_by_lang.get(voice_lang, ())
+    if not vrows:
+        st.info(Leaderboard.VOICE_NO_DATA)
+    else:
+        st.plotly_chart(
+            lb_charts.outcome_stacked_bar(
+                lb_charts.prep_voice_rows(list(vrows)),
+                scale_low_n=True,
+            ),
+            use_container_width=True,
+        )
 
 
 def comments_page():

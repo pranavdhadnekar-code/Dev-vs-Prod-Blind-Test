@@ -1096,6 +1096,47 @@ class BenchmarkDatabase:
             for (a, b, o) in rows if a and b
         ]
 
+    def fetch_leaderboard_inputs(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Vote outcomes + voice rows in one DB connection (both include language)."""
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT language, left_provider, right_provider, outcome
+            FROM votes
+            WHERE language IS NOT NULL
+        ''')
+        outcome_rows = cursor.fetchall()
+        cursor.execute('''
+            SELECT v.language, b.left_provider, b.right_provider,
+                   b.left_voice, b.right_voice, v.outcome
+            FROM votes v
+            JOIN battles b ON v.battle_id = b.battle_id
+            WHERE v.language IS NOT NULL
+        ''')
+        voice_rows = cursor.fetchall()
+        conn.close()
+        outcomes = [
+            {
+                "language": lang,
+                "provider_a": a,
+                "provider_b": b,
+                "outcome": o,
+            }
+            for (lang, a, b, o) in outcome_rows if lang and a and b
+        ]
+        voices = [
+            {
+                "language": lang,
+                "left_provider": lp,
+                "right_provider": rp,
+                "left_voice": lv,
+                "right_voice": rv,
+                "outcome": o,
+            }
+            for (lang, lp, rp, lv, rv, o) in voice_rows if lang and lp and rp
+        ]
+        return {"outcomes": outcomes, "voices": voices}
+
     def get_voice_outcomes(self, language: str = None) -> List[Dict[str, Any]]:
         """Per-vote rows joined to battle voices (for per-voice analysis).
 

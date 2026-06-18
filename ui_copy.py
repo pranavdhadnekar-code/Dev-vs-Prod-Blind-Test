@@ -123,6 +123,10 @@ class Leaderboard:
     COLOR_LEGEND = (
         "Teal = Falcon wins · Coral = competitor wins · Gray = ties"
     )
+    LOADING = "Computing rankings…"
+    LANG_DETAIL_PICK = "Show provider breakdown for"
+    VOICE_LANG_PICK = "Show voice breakdown for"
+    LANG_DETAIL_NONE = "Select a language…"
 
 
 class Comments:
