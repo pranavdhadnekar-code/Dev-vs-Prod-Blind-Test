@@ -359,10 +359,26 @@ class BenchmarkDatabase:
             except Exception:
                 pass
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS battle_raw_audio (
+                battle_id TEXT PRIMARY KEY,
+                falcon_side TEXT NOT NULL,
+                falcon_audio_format TEXT,
+                falcon_audio_base64 TEXT NOT NULL,
+                competitor_audio_format TEXT,
+                competitor_audio_base64 TEXT,
+                created_at DATETIME
+            )
+        ''')
+
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_battle ON votes(battle_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_votes_language ON votes(language)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_battles_language ON battles(language)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_falcon_failures_language ON falcon_failures(language)')
+        cursor.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_falcon_failures_battle '
+            'ON falcon_failures(battle_id)'
+        )
 
         conn.commit()
         conn.close()
@@ -1037,6 +1053,71 @@ class BenchmarkDatabase:
         conn.close()
         return dict(row) if row else None
 
+    def save_battle_raw_audio(
+        self,
+        battle_id: str,
+        falcon_side: str,
+        falcon_audio_bytes: bytes,
+        falcon_audio_format: str,
+        competitor_audio_bytes: bytes,
+        competitor_audio_format: str,
+    ) -> bool:
+        """Persist pre-normalization Falcon + competitor clips for a battle."""
+        falcon_b64 = base64.b64encode(falcon_audio_bytes or b"").decode("ascii")
+        comp_b64 = base64.b64encode(competitor_audio_bytes or b"").decode("ascii")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cols = '''
+            (battle_id, falcon_side, falcon_audio_format, falcon_audio_base64,
+             competitor_audio_format, competitor_audio_base64, created_at)
+            VALUES (?,?,?,?,?,?,?)'''
+        if self.use_postgres:
+            insert_sql = (
+                "INSERT INTO battle_raw_audio" + cols
+                + " ON CONFLICT (battle_id) DO UPDATE SET"
+                + " falcon_side = EXCLUDED.falcon_side,"
+                + " falcon_audio_format = EXCLUDED.falcon_audio_format,"
+                + " falcon_audio_base64 = EXCLUDED.falcon_audio_base64,"
+                + " competitor_audio_format = EXCLUDED.competitor_audio_format,"
+                + " competitor_audio_base64 = EXCLUDED.competitor_audio_base64,"
+                + " created_at = EXCLUDED.created_at"
+            )
+        else:
+            insert_sql = "INSERT OR REPLACE INTO battle_raw_audio" + cols
+        cursor.execute(insert_sql, (
+            battle_id, falcon_side, falcon_audio_format, falcon_b64,
+            competitor_audio_format, comp_b64, datetime.now(),
+        ))
+        conn.commit()
+        conn.close()
+        return True
+
+    def get_battle_raw_audio(self, battle_id: str) -> Optional[Dict[str, Any]]:
+        """Return decoded raw Falcon + competitor clips for a battle, if stored."""
+        conn = self._connect(dict_rows=True)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT falcon_side, falcon_audio_format, falcon_audio_base64,
+                   competitor_audio_format, competitor_audio_base64
+            FROM battle_raw_audio WHERE battle_id = ?
+        ''', (battle_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        rec = dict(row)
+        rec["falcon_audio_bytes"] = base64.b64decode(rec.pop("falcon_audio_base64") or "")
+        rec["competitor_audio_bytes"] = base64.b64decode(
+            rec.pop("competitor_audio_base64") or "")
+        return rec
+
+    def delete_battle_raw_audio(self, battle_id: str) -> None:
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM battle_raw_audio WHERE battle_id = ?', (battle_id,))
+        conn.commit()
+        conn.close()
+
     def record_vote(self, battle_id: str, outcome: str, comment: str = "",
                     comment_deanonymized: str = "", rater_session: str = "default",
                     location: dict = None) -> bool:
@@ -1235,18 +1316,26 @@ class BenchmarkDatabase:
         comment: str = "",
     ) -> bool:
         """Persist a lost Falcon battle: raw Falcon + competitor audio and metadata."""
-        falcon_b64 = base64.b64encode(falcon_audio_bytes or b"").decode("ascii")
+        if not falcon_audio_bytes:
+            return False
+        falcon_b64 = base64.b64encode(falcon_audio_bytes).decode("ascii")
         comp_b64 = base64.b64encode(competitor_audio_bytes or b"").decode("ascii")
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO falcon_failures
+        cols = '''
             (battle_id, language, item_id, item_text, falcon_voice,
              competitor_provider, competitor_voice, outcome, audio_format,
              audio_base64, competitor_audio_format, competitor_audio_base64,
              rater_session, comment, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ''', (
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+        if self.use_postgres:
+            insert_sql = (
+                "INSERT INTO falcon_failures" + cols
+                + " ON CONFLICT (battle_id) DO NOTHING"
+            )
+        else:
+            insert_sql = "INSERT OR IGNORE INTO falcon_failures" + cols
+        cursor.execute(insert_sql, (
             battle_id, language, item_id, item_text, falcon_voice,
             competitor_provider, competitor_voice, outcome, falcon_audio_format,
             falcon_b64, competitor_audio_format, comp_b64,

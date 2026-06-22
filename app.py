@@ -9,6 +9,7 @@ import asyncio
 import csv
 import io
 import json
+import logging
 import os
 import re
 import time
@@ -41,6 +42,7 @@ from security import session_manager
 from database import BenchmarkDatabase
 
 db = BenchmarkDatabase()
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title=ui_copy.APP_TITLE,
@@ -325,17 +327,31 @@ def generate_battle(language: str, gender: str, on_step=None):
         comp_side = "right" if falcon_side == "left" else "left"
         falcon_res = res_left if falcon_side == "left" else res_right
         comp_res = res_right if falcon_side == "left" else res_left
+        falcon_clip = {
+            "audio": falcon_res.audio_data,
+            "ext": _raw_audio_ext(falcon_res.audio_data),
+        }
+        comp_clip = {
+            "audio": comp_res.audio_data,
+            "ext": _raw_audio_ext(comp_res.audio_data),
+        }
         st.session_state.battle_raw = {
             "falcon_side": falcon_side,
-            "falcon": {
-                "audio": falcon_res.audio_data,
-                "ext": _raw_audio_ext(falcon_res.audio_data),
-            },
-            "competitor": {
-                "audio": comp_res.audio_data,
-                "ext": _raw_audio_ext(comp_res.audio_data),
-            },
+            "falcon": falcon_clip,
+            "competitor": comp_clip,
         }
+        try:
+            db.save_battle_raw_audio(
+                battle_id=plan.battle_id,
+                falcon_side=falcon_side,
+                falcon_audio_bytes=falcon_clip["audio"],
+                falcon_audio_format=falcon_clip["ext"],
+                competitor_audio_bytes=comp_clip["audio"],
+                competitor_audio_format=comp_clip["ext"],
+            )
+        except Exception:
+            logger.exception(
+                "Failed to persist raw audio for battle %s", plan.battle_id)
     else:
         st.session_state.battle_raw = None
 
@@ -362,10 +378,35 @@ def record_vote(outcome: str):
     st.toast(Battle.VOTE_SAVED)
 
 
+def _load_battle_raw_clips(battle_id: str) -> dict | None:
+    """Raw Falcon + competitor clips: DB first (survives reruns), session fallback."""
+    stored = db.get_battle_raw_audio(battle_id)
+    if stored and stored.get("falcon_audio_bytes"):
+        return {
+            "falcon_side": stored["falcon_side"],
+            "falcon": {
+                "audio": stored["falcon_audio_bytes"],
+                "ext": stored.get("falcon_audio_format") or "wav",
+            },
+            "competitor": {
+                "audio": stored.get("competitor_audio_bytes") or b"",
+                "ext": stored.get("competitor_audio_format") or "wav",
+            },
+        }
+    battle_raw = st.session_state.get("battle_raw")
+    if battle_raw and battle_raw.get("falcon", {}).get("audio"):
+        return battle_raw
+    return None
+
+
 def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = ""):
     """Persist raw Falcon + winning competitor clips when Falcon lost."""
-    battle_raw = st.session_state.get("battle_raw")
+    battle_raw = _load_battle_raw_clips(plan.battle_id)
     if not battle_raw or not battle_raw.get("falcon", {}).get("audio"):
+        logger.warning(
+            "Skipping falcon failure for %s: no raw audio in DB or session",
+            plan.battle_id,
+        )
         return
     norm = {"a": "A", "left": "A", "b": "B", "right": "B",
             "tie": "tie", "same": "tie"}.get((outcome or "").strip().lower())
@@ -405,9 +446,10 @@ def _maybe_store_falcon_failure(plan, outcome: str, comment_deanonymized: str = 
             rater_session=session_manager.get_session_id(),
             comment=comment_deanonymized,
         )
+        db.delete_battle_raw_audio(plan.battle_id)
     except Exception:
-        # Export capture must never block vote recording.
-        pass
+        logger.exception(
+            "Failed to save falcon failure for battle %s", plan.battle_id)
 
 
 def _request_retry():
