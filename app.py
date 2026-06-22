@@ -821,7 +821,7 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
     manifest_cols = [
         "battle_id", "language", "item_id", "text",
         "falcon_voice", "competitor_provider", "competitor_voice",
-        "outcome", "comment", "created_at",
+        "outcome", "comment", "audio_source", "created_at",
         "falcon_audio_file", "falcon_audio_format",
         "competitor_audio_file", "competitor_audio_format",
     ]
@@ -868,6 +868,7 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
                 "competitor_voice": rec.get("competitor_voice", ""),
                 "outcome": rec.get("outcome", ""),
                 "comment": rec.get("comment") or "",
+                "audio_source": rec.get("audio_source") or "live",
                 "created_at": str(rec.get("created_at", "")),
                 "falcon_audio_file": falcon_file if falcon_audio else "",
                 "falcon_audio_format": falcon_ext if falcon_audio else "",

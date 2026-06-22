@@ -353,6 +353,7 @@ class BenchmarkDatabase:
         for col, typedef in (
             ("competitor_audio_format", "TEXT"),
             ("competitor_audio_base64", "TEXT"),
+            ("audio_source", "TEXT"),
         ):
             try:
                 cursor.execute(f'ALTER TABLE falcon_failures ADD COLUMN {col} {typedef}')
@@ -1298,6 +1299,42 @@ class BenchmarkDatabase:
         conn.close()
         return langs
 
+    def get_omni_losses_missing_failures(
+        self,
+        anchor: str = "omni_tts",
+        since: Optional[datetime] = None,
+        battle_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Votes where the anchor lost but no falcon_failures row exists yet."""
+        conn = self._connect(dict_rows=True)
+        cursor = conn.cursor()
+        sql = '''
+            SELECT v.battle_id, v.outcome, v.winner_provider, v.loser_provider,
+                   v.left_provider, v.right_provider, v.language,
+                   v.comment_deanonymized AS comment, v.rater_session,
+                   v.created_at AS voted_at,
+                   b.item_id, b.item_text, b.left_voice, b.right_voice,
+                   b.anchor, b.competitor
+            FROM votes v
+            JOIN battles b ON b.battle_id = v.battle_id
+            LEFT JOIN falcon_failures f ON f.battle_id = v.battle_id
+            WHERE v.loser_provider = ?
+              AND v.outcome IN ('A', 'B')
+              AND f.battle_id IS NULL
+        '''
+        params: List[Any] = [anchor]
+        if since is not None:
+            sql += ' AND v.created_at > ?'
+            params.append(since)
+        if battle_id:
+            sql += ' AND v.battle_id = ?'
+            params.append(battle_id)
+        sql += ' ORDER BY v.created_at'
+        cursor.execute(sql, params)
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+
     def save_falcon_failure(
         self,
         battle_id: str,
@@ -1314,6 +1351,8 @@ class BenchmarkDatabase:
         competitor_audio_format: str = "wav",
         rater_session: str = "default",
         comment: str = "",
+        audio_source: str = "live",
+        created_at: Optional[datetime] = None,
     ) -> bool:
         """Persist a lost Falcon battle: raw Falcon + competitor audio and metadata."""
         if not falcon_audio_bytes:
@@ -1326,8 +1365,8 @@ class BenchmarkDatabase:
             (battle_id, language, item_id, item_text, falcon_voice,
              competitor_provider, competitor_voice, outcome, audio_format,
              audio_base64, competitor_audio_format, competitor_audio_base64,
-             rater_session, comment, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
+             rater_session, comment, audio_source, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
         if self.use_postgres:
             insert_sql = (
                 "INSERT INTO falcon_failures" + cols
@@ -1339,7 +1378,8 @@ class BenchmarkDatabase:
             battle_id, language, item_id, item_text, falcon_voice,
             competitor_provider, competitor_voice, outcome, falcon_audio_format,
             falcon_b64, competitor_audio_format, comp_b64,
-            rater_session, comment or "", datetime.now(),
+            rater_session, comment or "", audio_source or "live",
+            created_at or datetime.now(),
         ))
         conn.commit()
         conn.close()
@@ -1369,7 +1409,7 @@ class BenchmarkDatabase:
         sql = (
             "SELECT battle_id, language, item_id, item_text, falcon_voice, "
             "competitor_provider, competitor_voice, outcome, audio_format, "
-            "competitor_audio_format, comment, created_at" + audio_cols
+            "competitor_audio_format, comment, audio_source, created_at" + audio_cols
             + " FROM falcon_failures"
         )
         if language:
