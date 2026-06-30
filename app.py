@@ -221,6 +221,16 @@ def de_anonymize_comment(comment: str, left_id: str, right_id: str) -> str:
     return c
 
 
+def append_voice_to_comment(comment: str, voice_id: str) -> str:
+    """Append battle voice to stored comment for the Comments page."""
+    if not (comment or "").strip():
+        return comment or ""
+    info = config.get_falcon_voice_info().get(voice_id)
+    name = info.name if info else voice_id
+    base = comment.strip().rstrip(".")
+    return f"{base}. Voice={name}"
+
+
 def _location() -> dict:
     try:
         loc = geo_service.get_location()
@@ -363,6 +373,7 @@ def record_vote(outcome: str):
         return
     comment = st.session_state.get("comment_text", "") or ""
     deanon = de_anonymize_comment(comment, plan.left_provider, plan.right_provider)
+    deanon = append_voice_to_comment(deanon, plan.left_voice)
     db.record_vote(plan.battle_id, outcome, comment=comment,
                    comment_deanonymized=deanon,
                    rater_session=session_manager.get_session_id(),
