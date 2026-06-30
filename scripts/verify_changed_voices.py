@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Probe every voice in the changed ElevenLabs / Deepgram / Cartesia pools."""
+"""Probe every voice in the shared Falcon dev/prod battle pools."""
 from __future__ import annotations
 
 import asyncio
@@ -22,7 +22,7 @@ from arena_language_registry import build_provider_languages
 from provider_health import _TEST_TEXT
 from tts_providers import TTSProviderFactory, TTSRequest
 
-PROVIDERS = ("elevenlabs_v3", "deepgram_aura2", "cartesia_sonic3")
+PROVIDERS = ("falcon_dev", "falcon_prod")
 CONCURRENCY = 4
 
 
@@ -44,7 +44,10 @@ async def probe_one(sem: asyncio.Semaphore, provider: str, language: str,
         try:
             p = TTSProviderFactory.create_provider(provider)
             req = TTSRequest(text=text, voice=voice, provider=provider)
-            result = await asyncio.wait_for(p.generate_speech(req), timeout=30.0)
+            probe_timeout = config.health_check_timeout(provider)
+            result = await asyncio.wait_for(
+                p.generate_speech(req), timeout=probe_timeout
+            )
             if result.success and result.audio_data:
                 return Row(provider, language, gender, voice, True,
                            f"{result.file_size_bytes} bytes", result.latency_ms)

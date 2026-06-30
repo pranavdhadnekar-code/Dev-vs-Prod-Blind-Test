@@ -6,7 +6,6 @@ show working vs failing vs not configured (not just whether a key exists).
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from typing import Any, Dict, List, Optional, Set
 
@@ -18,15 +17,11 @@ _TEST_TEXT = {
     "en-US": "Voice arena connection test.",
     "en-IN": "Voice arena connection test.",
     "en-UK": "Voice arena connection test.",
-    "hi-IN": "यह एक संक्षिप्त परीक्षण है।",
-    "bn-IN": "এটি একটি সংক্ষিপ্ত পরীক্ষা।",
-    "ta-IN": "இது ஒரு சிறிய சோதனை.",
-    "fr-FR": "Ceci est un court test.",
-    "es-ES": "Esta es una prueba breve.",
-    "mr-IN": "हा एक छोटा चाचणी वाक्य आहे.",
-    "ml-IN": "ഇത് ഒരു ചെറിയ പരീക്ഷണ വാക്യമാണ്.",
 }
-_DEFAULT_TIMEOUT = 25.0
+def _probe_timeout(provider_id: str, timeout: Optional[float]) -> float:
+    if timeout is not None:
+        return timeout
+    return config.health_check_timeout(provider_id)
 
 
 def _test_text(language: str) -> str:
@@ -48,23 +43,15 @@ def _test_target(provider_id: str) -> tuple[Optional[str], Optional[str]]:
 
 def _configured_but_blocked(provider_id: str) -> Optional[str]:
     """Pre-flight failures before hitting the network."""
-    if not config.is_provider_configured(provider_id):
-        return None
-    if provider_id == "azure_tts" and not os.getenv("AZURE_SPEECH_REGION", "").strip():
-        return "AZURE_SPEECH_REGION not set"
-    if provider_id == "amazon_polly":
-        if not os.getenv("AWS_ACCESS_KEY_ID", "").strip():
-            return "AWS_ACCESS_KEY_ID not set"
-        if not os.getenv("AWS_SECRET_ACCESS_KEY", "").strip():
-            return "AWS_SECRET_ACCESS_KEY not set"
     return None
 
 
 async def check_provider(
     provider_id: str,
-    timeout: float = _DEFAULT_TIMEOUT,
+    timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Run one synthesis probe for a provider."""
+    probe_timeout = _probe_timeout(provider_id, timeout)
     blocked = _configured_but_blocked(provider_id)
     if blocked:
         return {
@@ -98,7 +85,7 @@ async def check_provider(
             provider.generate_speech(
                 TTSRequest(text=text, voice=voice, provider=provider_id)
             ),
-            timeout=timeout,
+            timeout=probe_timeout,
         )
         if result.success and result.audio_data:
             return {
@@ -115,10 +102,13 @@ async def check_provider(
             "latency_ms": result.latency_ms,
         }
     except asyncio.TimeoutError:
+        hint = ""
+        if provider_id == "falcon_dev":
+            hint = " (dev stream is slow — raise FALCON_DEV_HEALTH_TIMEOUT if needed)"
         return {
             "state": "fail",
             "configured": True,
-            "message": "Timed out",
+            "message": f"Timed out after {probe_timeout:.0f}s{hint}",
             "latency_ms": None,
         }
     except Exception as e:
@@ -132,9 +122,12 @@ async def check_provider(
 
 async def check_all(
     provider_ids: Optional[List[str]] = None,
-    timeout: float = _DEFAULT_TIMEOUT,
+    timeout: Optional[float] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """Probe every arena provider (parallel)."""
+    """Probe every arena provider (parallel).
+
+    When ``timeout`` is omitted, each provider uses config.health_check_timeout().
+    """
     ids = provider_ids or list(config.TTS_PROVIDERS.keys())
     checked_at = time.time()
     results = await asyncio.gather(

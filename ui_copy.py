@@ -14,8 +14,12 @@ ANCHOR is the single source of truth for the reference model's display name; a
 future rename touches one line here.
 """
 
-APP_TITLE = "Murf Voice Arena"
-ANCHOR = "Falcon 2"
+APP_TITLE = "Falcon Dev vs Prod"
+PROD = "Prod"
+DEV = "Dev"
+PROD_WINS = "Prod wins"
+DEV_WINS = "Dev wins"
+ANCHOR = PROD  # reference model display name
 
 
 class Nav:
@@ -35,8 +39,8 @@ class Battle:
     LANGUAGE = "Language"
     VOICE_GENDER = "Voice gender"
     VOICE_GENDER_OPTIONS = ["Male", "Female"]
-    COMPETITORS = "Competitors"
-    NO_COMPETITORS = "Select at least one competitor to run a comparison."
+    COMPETITORS = DEV
+    NO_COMPETITORS = f"Enable {DEV} in the sidebar health check to run a comparison."
     START = "Start comparison"
     SETUP = (
         "{lang} · {n} providers compared to " + ANCHOR + " · both clips are "
@@ -80,48 +84,47 @@ class Leaderboard:
     METRIC_COMPARISONS = "Comparisons"
     METRIC_REFERENCE = "Reference voice"
     NO_DATA = "No votes yet. Run some comparisons first."
-    HEAD_TO_HEAD = f"How often {ANCHOR} wins against each provider"
-    CHART_TITLE = f"{ANCHOR} win rate (%)"
+    HEAD_TO_HEAD = f"{PROD} vs {DEV} — win share"
+    CHART_TITLE = f"{PROD} win rate (%)"
     OVERALL = "Overall ranking"
     WEIGHTS = "Language weights: {weights}"
     PER_LANGUAGE = "Results by language"
-    VOICE_BREAKDOWN = f"{ANCHOR} Win Rate by Voice"
+    VOICE_BREAKDOWN = f"{PROD} win rate by voice"
     VOICE_BREAKDOWN_HINT = (
-        f"Each {ANCHOR} voice across all comparisons it appeared in. "
+        f"Each {PROD} voice across all comparisons it appeared in. "
         "Win rate excludes ties."
     )
-    VOICE_NO_DATA = f"No {ANCHOR} voice comparisons yet."
+    VOICE_NO_DATA = f"No {PROD} voice comparisons yet."
     COL_VOICE = "Voice"
     COL_GENDER = "Gender"
-    COL_ANCHOR_LOSSES = f"{ANCHOR} loses"
-    COL_LOSES_TO = "Loses to"
+    COL_ANCHOR_LOSSES = f"{PROD} losses"
+    COL_LOSES_TO = f"Loses to ({DEV})"
     LANG_SUMMARY = "{n} comparisons · {ties} ties"
     BATTLES_BY_COMPETITOR = "Comparisons run: {breakdown}"
     SCHEDULER_NOTE = (
-        f"Each comparison is {ANCHOR} vs one competitor. Only providers that pass "
+        f"Each comparison is {PROD} vs {DEV}. Only endpoints that pass "
         "the health check (see sidebar) are scheduled — failed or unconfigured "
         "providers are skipped."
     )
     COL_BATTLES_RUN = "Battles run"
-    LANG_HEAD_TO_HEAD = f"{ANCHOR} vs each provider"
+    LANG_HEAD_TO_HEAD = f"{PROD} vs {DEV}"
     INFERRED_NOTE = (
-        f"Rankings against {ANCHOR} come straight from your votes. Rankings "
-        "between other providers are estimated and less certain."
+        f"Rankings for {PROD} and {DEV} come straight from your votes."
     )
     # Column headers
     COL_RANK = "Rank"
-    COL_PROVIDER = "Provider"
+    COL_PROVIDER = "Side"
     COL_SCORE = "Score"
     COL_CONFIDENCE = "Confidence range"
     COL_COMPARISONS = "Comparisons"
     COL_TIED_WITH = "Tied with"
-    COL_COMPETITOR = "Provider"
-    COL_ANCHOR_WINS = f"{ANCHOR} wins"
-    COL_PROVIDER_WINS = "Provider wins"
+    COL_COMPETITOR = DEV
+    COL_ANCHOR_WINS = PROD_WINS
+    COL_PROVIDER_WINS = DEV_WINS
     COL_TIES = "Ties"
-    COL_WIN_RATE = f"{ANCHOR} win rate"
+    COL_WIN_RATE = f"{PROD} win rate"
     COLOR_LEGEND = (
-        "Teal = Falcon wins · Coral = competitor wins · Gray = ties"
+        f"Teal = {PROD_WINS} · Coral = {DEV_WINS} · Gray = ties"
     )
     LOADING = "Computing rankings…"
     LANG_DETAIL_PICK = "Show provider breakdown for"
@@ -154,17 +157,17 @@ class Export:
     SNAPSHOT_SAVED = "Snapshot saved ({run_id})"
     TECH_DETAILS = "Technical details"
     RECENT = "Recent snapshots"
-    FAILURES_TITLE = "Falcon failures (lost battles)"
+    FAILURES_TITLE = f"{PROD} losses (dev preferred)"
     FAILURES_HELP = (
-        "Download raw Falcon 2 and winning-competitor audio plus text for "
-        "battles where the competitor was preferred. Each ZIP pairs both clips "
+        f"Download raw {PROD} and {DEV} audio plus text for "
+        f"battles where {DEV} was preferred. Each ZIP pairs both clips "
         "in the same folder. Only failures recorded after this feature was "
         "deployed are included."
     )
-    FAILURES_EMPTY = "No Falcon losses recorded yet."
+    FAILURES_EMPTY = f"No {PROD} losses recorded yet."
     FAILURES_ALL_LANGS = "All languages"
     FAILURES_LANGUAGE = "Language"
-    FAILURES_COUNT = "{n} lost battle(s) ready to export (Falcon + competitor audio)."
+    FAILURES_COUNT = f"{{n}} lost battle(s) ready to export ({PROD} + {DEV} audio)."
     FAILURES_PREPARE = "Prepare failures (.zip)"
     FAILURES_DOWNLOAD = "Download failures (.zip)"
 

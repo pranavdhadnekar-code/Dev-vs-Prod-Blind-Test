@@ -23,12 +23,11 @@ else
     exit 1
 fi
 
-# Check API keys (Gen2 + NewModel blind test)
-if [ -z "$MURF_API_KEY" ] || [ -z "$OMNI_API_KEY" ] || { [ -z "$OMNI_HOST" ] && [ -z "$OMNI_BASE_URL" ]; }; then
+# Check API keys (Falcon dev + prod blind test)
+if [ -z "$FALCON_DEV_API_KEY" ] && [ -z "$OMNI_API_KEY" ]; then
     echo "⚠️ For the listening test, set in .env (see .env.example):"
-    echo "   MURF_API_KEY=..."
-    echo "   OMNI_API_KEY=..."
-    echo "   OMNI_HOST=host:port   # or OMNI_BASE_URL=https://.../tts"
+    echo "   FALCON_DEV_API_KEY=...   # or OMNI_API_KEY"
+    echo "   FALCON_PROD_API_KEY=...  # or MURF_API_KEY"
 fi
 
 # Start the application

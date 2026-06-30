@@ -1,9 +1,8 @@
-"""Murf Voice Arena — multi-provider blind listening test (Streamlit).
+"""Falcon dev vs prod — blind listening test (Streamlit).
 
-Every battle pits the anchor (Falcon 2) against one competitor for a
-chosen language. Both clips are loudness/format-normalized so nothing but voice
-quality distinguishes them. Votes (Left / Right / About the same) feed a
-rating engine with bootstrap confidence intervals.
+Every battle pits Falcon production (reference) against Falcon dev for a
+chosen language, using the same voice id on both sides. Clips are
+loudness/format-normalized so nothing but rendering quality distinguishes them.
 """
 import asyncio
 import csv
@@ -882,17 +881,17 @@ def _build_falcon_failures_zip(rows: list) -> bytes:
         zf.writestr("falcon_failures/failures.jsonl", "\n".join(jsonl_lines))
         zf.writestr(
             "falcon_failures/README.txt",
-            "Falcon failure export\n"
+            f"{ui_copy.PROD} vs {ui_copy.DEV} failure export\n"
             "=====================\n\n"
-            "Each row is a battle where the rater preferred the competitor over\n"
-            "Falcon 2. Ties and Falcon wins are not included.\n\n"
+            f"Each row is a battle where the rater preferred {ui_copy.DEV} over\n"
+            f"{ui_copy.PROD}. Ties and {ui_copy.PROD_WINS} are not included.\n\n"
             "Folder layout (one pair per battle):\n"
             "  audio/<language>/<timestamp>__<battle_id>/\n"
-            "    falcon__<falcon_voice>.<wav|mp3>      — raw Falcon model output\n"
-            "    <competitor>__<competitor_voice>.<wav|mp3> — raw winning clip\n\n"
+            f"    prod__<voice>.<wav|mp3>      — raw {ui_copy.PROD} model output\n"
+            f"    dev__<voice>.<wav|mp3>        — raw {ui_copy.DEV} clip\n\n"
             "failures.csv and failures.jsonl list both audio paths, the spoken\n"
-            "text, voices, competitor name, deanonymized comment (if any), and\n"
-            "timestamp. Older rows may only have the Falcon clip.\n",
+            "text, voices, side names, deanonymized comment (if any), and\n"
+            f"timestamp. Older rows may only have the {ui_copy.PROD} clip.\n",
         )
     return buf.getvalue()
 

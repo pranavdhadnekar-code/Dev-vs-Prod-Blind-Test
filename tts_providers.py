@@ -21,8 +21,7 @@ from config import (
     TTS_PROVIDERS,
     get_falcon_api_url,
     falcon_auth_headers,
-    get_falcon_supported_voices,
-    is_falcon_dev_stream,
+    falcon_synthesis_timeout,
     NORMALIZATION,
 )
 
@@ -376,17 +375,21 @@ class MurfGen2TTSProvider(TTSProvider):
 
 
 class Falcon2TTSProvider(TTSProvider):
-    """Falcon 2 anchor — Murf speech/stream API with model=FALCON."""
+    """Murf Falcon speech/stream API with model=FALCON (dev or prod endpoint)."""
 
-    def __init__(self):
-        super().__init__("omni_tts")
+    def __init__(self, provider_id: str):
+        if provider_id not in ("falcon_dev", "falcon_prod"):
+            raise ValueError(f"Not a Falcon provider: {provider_id}")
+        super().__init__(provider_id)
 
     def validate_request(self, request: TTSRequest) -> Tuple[bool, str]:
         if len(request.text) > self.config.max_chars:
             return False, f"Text exceeds maximum length of {self.config.max_chars} characters"
-        allowed = get_falcon_supported_voices()
-        if request.voice not in allowed:
-            return False, f"Voice '{request.voice}' not supported. Available: {allowed}"
+        if request.voice not in self.config.supported_voices:
+            return False, (
+                f"Voice '{request.voice}' not supported. "
+                f"Available: {self.config.supported_voices}"
+            )
         return True, ""
 
     @staticmethod
@@ -409,7 +412,7 @@ class Falcon2TTSProvider(TTSProvider):
                 metadata={},
             )
 
-        url = get_falcon_api_url()
+        url = get_falcon_api_url(self.provider_id)
         headers = {**falcon_auth_headers(self.api_key), "Content-Type": "application/json"}
         payload = {
             "text": request.text,
@@ -422,7 +425,7 @@ class Falcon2TTSProvider(TTSProvider):
         }
 
         try:
-            timeout_s = 180 if is_falcon_dev_stream() else 120
+            timeout_s = falcon_synthesis_timeout(self.provider_id)
             async with aiohttp.ClientSession(connector=get_connector()) as session:
                 send_time = time.time()
                 async with session.post(
@@ -447,6 +450,10 @@ class Falcon2TTSProvider(TTSProvider):
                             error_message=None,
                             metadata=meta,
                         )
+                    env_hint = (
+                        "FALCON_DEV_API_KEY" if self.provider_id == "falcon_dev"
+                        else "FALCON_PROD_API_KEY"
+                    )
                     return TTSResult(
                         success=False,
                         audio_data=None,
@@ -454,8 +461,7 @@ class Falcon2TTSProvider(TTSProvider):
                         file_size_bytes=0,
                         error_message=(
                             f"API Error {response.status}: {body[:500]!r}. "
-                            "Falcon 2 needs a Murf ap2_ API key or JWT in OMNI_API_KEY "
-                            "(legacy Omni host keys are not valid for this endpoint)."
+                            f"Check {env_hint} and the endpoint URL for {self.provider_id}."
                         ),
                         metadata={"provider": self.provider_id},
                     )
@@ -483,7 +489,10 @@ class Falcon2TTSProvider(TTSProvider):
 
 
 class OmniTTSProvider(Falcon2TTSProvider):
-    """Alias kept for factory registration under omni_tts."""
+    """Backward-compatible alias for falcon_dev."""
+
+    def __init__(self):
+        super().__init__("falcon_dev")
 
 class MurfZeroshotTTSProvider(TTSProvider):
     """Murf Zeroshot TTS provider implementation"""
@@ -2111,25 +2120,17 @@ class TTSProviderFactory:
     # (Legacy classes for older models remain in this module for reference but
     # are intentionally not wired up here.)
     _PROVIDER_CLASSES = {
-        "omni_tts": OmniTTSProvider,
-        "murf_gen2": MurfGen2TTSProvider,
-        "elevenlabs_v3": ElevenLabsV3TTSProvider,
-        "deepgram_aura2": DeepgramAura2TTSProvider,
-        "cartesia_sonic3": CartesiaSonic3Provider,
-        "openai": OpenAITTSProvider,
-        "sarvam_bulbul_v3": SarvamBulbulV3TTSProvider,
-        "google_tts": GoogleTTSProvider,
-        "azure_tts": AzureTTSProvider,
-        "amazon_polly": AmazonPollyTTSProvider,
+        "falcon_dev": lambda: Falcon2TTSProvider("falcon_dev"),
+        "falcon_prod": lambda: Falcon2TTSProvider("falcon_prod"),
     }
 
     @staticmethod
     def create_provider(provider_id: str) -> TTSProvider:
         """Create a TTS provider instance for any registered provider."""
-        cls = TTSProviderFactory._PROVIDER_CLASSES.get(provider_id)
-        if cls is None:
+        factory = TTSProviderFactory._PROVIDER_CLASSES.get(provider_id)
+        if factory is None:
             raise ValueError(f"Unknown provider: {provider_id}")
-        return cls()
+        return factory()
 
     @staticmethod
     def get_available_providers() -> list:

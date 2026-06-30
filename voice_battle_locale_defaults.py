@@ -1,7 +1,6 @@
 """Voice Battle default sentences loaded from bundled TSV (`voice_battle_corpus.tsv`).
 
-Extend or replace sentences by editing that file (two columns: locale\\t<text>, one sentence per row).
-Locales **en-US** reuses the **en-UK** lines. **en-IN** has its own Indian English corpus.
+en-US, en-UK, and en-IN share the same comparison texts (`en-shared` bucket).
 """
 
 from __future__ import annotations
@@ -11,26 +10,17 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List
 
+from arena_comparison_corpus import ARENA_COMPARISON_TEXTS
+
 _VOICE_BATTLE_TSV = Path(__file__).resolve().parent / "voice_battle_corpus.tsv"
 
-_FALLBACK_LINES = """The quick brown fox jumps over the lazy dog.
-The wine glass fills again and laughter breaks through the pressure that had been building quietly for hours.
-Just to confirm, the co-applicant's name is spelled M-A-R-I-S-A, correct?
-Scientists have made a groundbreaking discovery that could revolutionize renewable energy.
-Hello, how can I assist you today with your account inquiry?"""
+_FALLBACK_LINES = "\n".join(ARENA_COMPARISON_TEXTS[:3])
 
-# Maps `blind_test_2_locale_filter` UI keys → BCP locale tag rows in voice_battle_corpus.tsv.
+# Maps blind-UI locale keys → BCP locale tag rows in voice_battle_corpus.tsv.
 _VOICE_BATTLE_UI_TO_BCP_LOCALE: Dict[str, str] = {
-    "US": "en-UK",
-    "IN": "en-IN",
-    "UK": "en-UK",
-    "HI": "hi-IN",
-    "BN": "bn-IN",
-    "TA": "ta-IN",
-    "FR": "fr-FR",
-    "ES": "es-ES",
-    "MR": "mr-IN",
-    "ML": "ml-IN",
+    "US": "en-shared",
+    "IN": "en-shared",
+    "UK": "en-shared",
 }
 
 
@@ -62,9 +52,11 @@ def _lines_by_bcp_locale(_mtime_key: int) -> Dict[str, List[str]]:
 
 def bundled_default_sentences_voice_battle(ui_locale: str) -> str:
     """Newline-separated default script lines for the Voice Battle textarea."""
-    tag = _VOICE_BATTLE_UI_TO_BCP_LOCALE.get(ui_locale, "en-US")
+    tag = _VOICE_BATTLE_UI_TO_BCP_LOCALE.get(ui_locale, "en-shared")
+    if tag == "en-shared":
+        return "\n".join(ARENA_COMPARISON_TEXTS)
     by_lc = _lines_by_bcp_locale(_bundle_mtime_ns())
-    seq = by_lc.get(tag) or by_lc.get("en-US")
+    seq = by_lc.get(tag) or by_lc.get("en-shared")
     if not seq:
         return _FALLBACK_LINES
     return "\n".join(seq)

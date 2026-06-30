@@ -1301,7 +1301,7 @@ class BenchmarkDatabase:
 
     def get_omni_losses_missing_failures(
         self,
-        anchor: str = "omni_tts",
+        anchor: str = "falcon_prod",
         since: Optional[datetime] = None,
         battle_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:

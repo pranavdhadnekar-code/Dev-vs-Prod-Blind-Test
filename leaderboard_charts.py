@@ -1,8 +1,8 @@
 """Plotly charts for the Voice Arena leaderboard.
 
 Consistent color language:
-  * teal  — Falcon wins / strength
-  * coral — competitor wins
+  * teal  — Prod wins / strength
+  * coral — Dev wins
   * gray  — ties / uncertainty (CI bands)
 """
 from __future__ import annotations
@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 import plotly.graph_objects as go
+
+from ui_copy import DEV_WINS, PROD_WINS, PROD
 
 COLOR_FALCON = "#0d9488"
 COLOR_COMPETITOR = "#f97066"
@@ -30,9 +32,9 @@ def _hover_outcome(name: str, wins: int, losses: int, ties: int, n: int) -> str:
     return (
         f"<b>{name}</b><br>"
         f"n={n}<br>"
-        f"Falcon wins: {wins} ({_pct(wins, n):.1f}%)<br>"
+        f"{PROD_WINS}: {wins} ({_pct(wins, n):.1f}%)<br>"
         f"Ties: {ties} ({_pct(ties, n):.1f}%)<br>"
-        f"Competitor wins: {losses} ({_pct(losses, n):.1f}%)"
+        f"{DEV_WINS}: {losses} ({_pct(losses, n):.1f}%)"
         "<extra></extra>"
     )
 
@@ -117,7 +119,7 @@ def outcome_stacked_bar(
     text_kw = dict(textposition="inside", insidetextanchor="middle", textfont=dict(size=11, color="white"))
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        y=labels, x=win_x, orientation="h", name="Falcon wins",
+        y=labels, x=win_x, orientation="h", name=PROD_WINS,
         marker_color=COLOR_FALCON, text=win_text,
         customdata=hovers, hovertemplate="%{customdata}",
         **text_kw,
@@ -130,7 +132,7 @@ def outcome_stacked_bar(
         textposition="inside", insidetextanchor="middle",
     ))
     fig.add_trace(go.Bar(
-        y=labels, x=loss_x, orientation="h", name="Competitor wins",
+        y=labels, x=loss_x, orientation="h", name=DEV_WINS,
         marker_color=COLOR_COMPETITOR, text=loss_text,
         customdata=hovers, hovertemplate="%{customdata}",
         **text_kw,
@@ -216,7 +218,7 @@ def language_winrate_heatmap(
     *,
     title: Optional[str] = None,
 ) -> go.Figure:
-    """Providers × languages; cell color = Falcon win rate (teal high, coral low)."""
+    """Providers × languages; cell color = Prod win rate (teal high, coral low)."""
     if not cells:
         fig = go.Figure()
         fig.add_annotation(text="No data yet", x=0.5, y=0.5, showarrow=False)
@@ -252,8 +254,8 @@ def language_winrate_heatmap(
         text=text,
         texttemplate="%{text}",
         hovertemplate=(
-            "Provider: %{y}<br>Language: %{x}<br>"
-            "Falcon win rate: %{z:.1f}%<br>n=%{customdata}<extra></extra>"
+            "Side: %{y}<br>Language: %{x}<br>"
+            f"{PROD} win rate: %{{z:.1f}}%<br>n=%{{customdata}}<extra></extra>"
         ),
         customdata=custom,
         colorscale=[
@@ -263,11 +265,11 @@ def language_winrate_heatmap(
         ],
         zmin=0,
         zmax=100,
-        colorbar=dict(title="Falcon win %", ticksuffix="%"),
+        colorbar=dict(title=f"{PROD} win %", ticksuffix="%"),
     ))
     fig.update_layout(
         xaxis_title="Language",
-        yaxis_title="Provider",
+        yaxis_title="Side",
         yaxis=dict(autorange="reversed"),
     )
     return _chart_layout(fig, max(360, 40 * len(providers)), margin_l=160, title=title)

@@ -232,6 +232,23 @@ class Scheduler:
         self._rotation_last[language] = key
         return by_key[key]
 
+    def _voices_for_matchup(
+        self,
+        provider_a: str,
+        provider_b: str,
+        language: str,
+        gender: str,
+        rng: random.Random,
+    ) -> tuple[str, str]:
+        """Pick voice ids for a matchup (identical when required for blind parity)."""
+        if config.share_voice_across_providers(provider_a, provider_b):
+            voice = self._voice_for(provider_a, language, gender, rng)
+            return voice, voice
+        return (
+            self._voice_for(provider_a, language, gender, rng),
+            self._voice_for(provider_b, language, gender, rng),
+        )
+
     def _voice_for(
         self, provider: str, language: str, gender: str, rng: random.Random,
     ) -> str:
@@ -272,8 +289,9 @@ class Scheduler:
         if item is None:
             item = rng.choice(items)
 
-        va = self._voice_for(m.provider_a, language, chosen_gender, rng)
-        vb = self._voice_for(m.provider_b, language, chosen_gender, rng)
+        va, vb = self._voices_for_matchup(
+            m.provider_a, m.provider_b, language, chosen_gender, rng,
+        )
 
         position_seed = rng.getrandbits(31)
         swap = assign_sides(m.provider_a, m.provider_b, position_seed)
@@ -323,8 +341,9 @@ class Scheduler:
             if not items:
                 raise SchedulerError(f"No corpus items for language '{language}'.")
             item = rng.choice(items)
-            va = self._voice_for(m.provider_a, language, chosen_gender, rng)
-            vb = self._voice_for(m.provider_b, language, chosen_gender, rng)
+            va, vb = self._voices_for_matchup(
+                m.provider_a, m.provider_b, language, chosen_gender, rng,
+            )
             position_seed = rng.getrandbits(31)
             swap = assign_sides(m.provider_a, m.provider_b, position_seed)
             if swap:

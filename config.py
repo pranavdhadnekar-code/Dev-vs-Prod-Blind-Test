@@ -13,12 +13,9 @@ except ImportError:
 
 from arena_language_registry import (
     ARENA_LANGUAGES,
+    FALCON_BATTLE_VOICES,
+    FALCON_PROVIDER_IDS,
     MURF_VOICE_GENDERS,
-    _CARTESIA,
-    _DEEPGRAM,
-    _ELEVENLABS,
-    _MURF_DEV_FALCON,
-    _MURF_PROD,
     build_provider_languages,
     flatten_voice_ids,
 )
@@ -57,17 +54,34 @@ def get_omni_tts_url() -> str:
     return f"http://{host}/tts"
 
 
-def get_falcon_api_url() -> str:
-    """Murf Falcon 2 (FALCON) streaming endpoint for the arena anchor."""
+def get_falcon_dev_url() -> str:
+    """Murf Falcon dev stream endpoint."""
     return (
-        _clean_env("MURF_FALCON_URL")
+        _clean_env("FALCON_DEV_URL")
+        or _clean_env("MURF_FALCON_URL")
+        or "https://api.dev.murf.ai/v1/speech/stream"
+    )
+
+
+def get_falcon_prod_url() -> str:
+    """Murf Falcon production endpoint."""
+    return (
+        _clean_env("FALCON_PROD_URL")
         or "https://api.murf.ai/v1/speech/stream"
     )
 
 
-def is_falcon_dev_stream() -> bool:
-    """True when Falcon 2 is pointed at the Murf dev stream endpoint."""
-    return "dev.murf.ai" in get_falcon_api_url()
+def get_falcon_api_url(provider_id: str = "falcon_dev") -> str:
+    """Resolve Falcon streaming URL for a provider id."""
+    if provider_id == "falcon_prod":
+        return get_falcon_prod_url()
+    return get_falcon_dev_url()
+
+
+def is_falcon_dev_stream(url: Optional[str] = None) -> bool:
+    """True when the URL points at the Murf dev stream endpoint."""
+    target = url if url is not None else get_falcon_dev_url()
+    return "dev.murf.ai" in target
 
 
 def _clean_env(name: str) -> str:
@@ -91,111 +105,62 @@ def falcon_auth_headers(api_key: str) -> Dict[str, str]:
     return {"api-key": api_key}
 
 
-def get_omni_falcon_api_key() -> str:
-    """API key for Falcon 2 anchor (OMNI_API_KEY env var).
+def falcon_synthesis_timeout(provider_id: str) -> int:
+    """Client-side aiohttp total timeout (seconds) for Falcon synthesis."""
+    if provider_id == "falcon_dev":
+        raw = _clean_env("FALCON_DEV_TIMEOUT") or "180"
+    elif provider_id == "falcon_prod":
+        raw = _clean_env("FALCON_PROD_TIMEOUT") or "120"
+    else:
+        raw = "25"
+    return int(float(raw))
 
-    Must be a Murf ``ap2_`` key or a JWT for dev stream endpoints. Legacy Omni /
-    NewModel host keys are not accepted by the Murf speech API.
-    """
-    omni = _clean_env("OMNI_API_KEY")
-    if omni and (is_murf_api_key(omni) or is_jwt_token(omni)):
-        return omni
-    murf = _clean_env("MURF_API_KEY")
-    if murf:
-        return murf
-    if omni:
-        return omni
+
+def health_check_timeout(provider_id: str) -> float:
+    """asyncio.wait_for limit for sidebar health probes (per provider)."""
+    if provider_id == "falcon_dev":
+        raw = _clean_env("FALCON_DEV_HEALTH_TIMEOUT")
+        default = str(falcon_synthesis_timeout("falcon_dev"))
+    elif provider_id == "falcon_prod":
+        raw = _clean_env("FALCON_PROD_HEALTH_TIMEOUT")
+        default = "45"
+    else:
+        raw = _clean_env("ARENA_HEALTH_TIMEOUT")
+        default = "25"
+    return float(raw or default)
+
+
+def get_falcon_dev_api_key() -> str:
+    """API key / JWT for Falcon dev stream."""
+    key = _clean_env("FALCON_DEV_API_KEY") or _clean_env("OMNI_API_KEY")
+    if key:
+        return key
     raise ValueError(
-        "Set OMNI_API_KEY to a Murf API key (ap2_…) or JWT for Falcon 2. "
-        "Legacy Omni host keys do not work with the Murf FALCON endpoint."
+        "Set FALCON_DEV_API_KEY (or OMNI_API_KEY) to a Murf ap2_ key or JWT for Falcon dev."
     )
 
 
-# --- Single voice catalog (Murf voiceId is the key) ---------------------
-# en-US + en-IN + en-UK: Murf Gen2 English catalogs. hi-IN: "Hindi - India". bn-IN / ta-IN as below.
-# kn-IN / mr-IN / te-IN native rows from partner sheets are omitted: Gen2 library tables show those locales via
-# multilingual EN voices, not primary kn-IN-*/mr-IN-*/te-IN-* IDs (avoids GEN2 400). en-US-clint omitted by request.
-_VOICE_CATALOG = [
-    # en-US (Gen2 US English catalog)
-    VoiceInfo("en-US-terrell",   "Terrell",   "male",   "US"),
-    VoiceInfo("en-US-natalie",   "Natalie",   "female", "US"),
-    VoiceInfo("en-US-charles",   "Charles",   "male",   "US"),
-    VoiceInfo("en-US-samantha",  "Samantha",  "female", "US"),
-    VoiceInfo("en-US-alicia",    "Alicia",    "female", "US"),
-    VoiceInfo("en-US-ronnie",    "Ronnie",    "male",   "US"),
-    VoiceInfo("en-US-cooper",    "Cooper",    "male",   "US"),
-    VoiceInfo("en-US-michelle",  "Michelle",  "female", "US"),
-    VoiceInfo("en-US-miles",     "Miles",     "male",   "US"),
-    VoiceInfo("en-US-marcus",    "Marcus",    "male",   "US"),
-    VoiceInfo("en-US-lucas",     "Lucas",     "male",   "US"),
-    VoiceInfo("en-US-ken",       "Ken",       "male",   "US"),
-    VoiceInfo("en-US-daisy",     "Daisy",     "female", "US"),
-    VoiceInfo("en-US-edmund",    "Edmund",    "male",   "US"),
-    VoiceInfo("en-US-wayne",     "Wayne",     "male",   "US"),
-    VoiceInfo("en-US-iris",      "Iris",      "female", "US"),
-    VoiceInfo("en-US-ryan",      "Ryan",      "male",   "US"),
-    VoiceInfo("en-US-claire",    "Claire",    "female", "US"),
-    VoiceInfo("en-US-naomi",     "Naomi",     "female", "US"),
-    VoiceInfo("en-US-charlotte", "Charlotte", "female", "US"),
-    VoiceInfo("en-US-dylan",     "Dylan",     "male",   "US"),
-    VoiceInfo("en-US-julia",     "Julia",     "female", "US"),
-    VoiceInfo("en-US-carter",    "Carter",    "male",   "US"),
-    VoiceInfo("en-US-daniel",    "Daniel",    "male",   "US"),
-    VoiceInfo("en-US-june",      "June",      "female", "US"),
-    VoiceInfo("en-US-amara",     "Amara",     "female", "US"),
-    VoiceInfo("en-US-river",     "River",     "male",   "US"),
-    VoiceInfo("en-US-evander",   "Evander",   "male",   "US"),
-    VoiceInfo("en-US-caleb",     "Caleb",     "male",   "US"),
-    VoiceInfo("en-US-josie",     "Josie",     "female", "US"),
-    VoiceInfo("en-US-molly",     "Molly",     "female", "US"),
-    VoiceInfo("en-US-delilah",   "Delilah",   "female", "US"),
-    VoiceInfo("en-US-imani",     "Imani",     "female", "US"),
-    VoiceInfo("en-US-jayden",    "Jayden",    "male",   "US"),
-    VoiceInfo("en-US-denzel",    "Denzel",    "male",   "US"),
-    VoiceInfo("en-US-angela",    "Angela",    "female", "US"),
-    VoiceInfo("en-US-phoebe",    "Phoebe",    "female", "US"),
-    VoiceInfo("en-US-riley",     "Riley",     "female", "US"),
-    VoiceInfo("en-US-abigail",   "Abigail",   "female", "US"),
-    VoiceInfo("en-US-zion",      "Zion",      "male",   "US"),
-    VoiceInfo("en-US-ariana",    "Ariana",    "female", "US"),
-    VoiceInfo("en-US-paul",      "Paul",      "male",   "US"),
-    VoiceInfo("en-US-maverick",  "Maverick",  "male",   "US"),
-    # hi-IN
-    VoiceInfo("hi-IN-shaan",     "Shaan",     "male",   "HI"),
-    VoiceInfo("hi-IN-rahul",     "Rahul",     "male",   "HI"),
-    VoiceInfo("hi-IN-shweta",    "Shweta",    "female", "HI"),
-    VoiceInfo("hi-IN-ayushi",    "Ayushi",    "female", "HI"),
-    VoiceInfo("hi-IN-amit",      "Amit",      "male",   "HI"),
-    VoiceInfo("hi-IN-kabir",     "Kabir",     "male",   "HI"),
-    # bn-IN (Gen2 Bangla - India)
-    VoiceInfo("bn-IN-anwesha",   "Anwesha",   "female", "BN"),
-    VoiceInfo("bn-IN-ishani",    "Ishani",    "female", "BN"),
-    VoiceInfo("bn-IN-abhik",     "Abhik",     "male",   "BN"),
-    VoiceInfo("bn-IN-arnab",     "Arnab",     "male",   "BN"),
-    # ta-IN (Gen2 Tamil - India)
-    VoiceInfo("ta-IN-iniya",     "Iniya",     "female", "TA"),
-    VoiceInfo("ta-IN-suresh",    "Suresh",    "male",   "TA"),
-    VoiceInfo("ta-IN-sarvesh",   "Sarvesh",   "male",   "TA"),
-    VoiceInfo("ta-IN-abirami",   "Abirami",   "female", "TA"),
-    # en-IN (English - India, Gen2)
-    VoiceInfo("en-IN-alia",      "Alia",      "female", "IN"),
-    VoiceInfo("en-IN-isha",      "Isha",      "female", "IN"),
-    VoiceInfo("en-IN-aarav",     "Aarav",     "male",   "IN"),
-    VoiceInfo("en-IN-eashwar",   "Eashwar",   "male",   "IN"),
-    # en-UK (English - UK / British English, Gen2)
-    VoiceInfo("en-UK-aiden",     "Aiden",     "male",   "UK"),
-    VoiceInfo("en-UK-theo",      "Theo",      "male",   "UK"),
-    VoiceInfo("en-UK-heidi",     "Heidi",     "female", "UK"),
-    VoiceInfo("en-UK-amber",     "Amber",     "female", "UK"),
-]
+def get_falcon_prod_api_key() -> str:
+    """API key for Falcon production."""
+    key = _clean_env("FALCON_PROD_API_KEY") or _clean_env("MURF_API_KEY")
+    if key and is_murf_api_key(key):
+        return key
+    if key:
+        return key
+    raise ValueError(
+        "Set FALCON_PROD_API_KEY (or MURF_API_KEY) to a Murf ap2_ production API key."
+    )
 
 
-def _infer_murf_voice_info(voice_id: str) -> VoiceInfo:
+def get_omni_falcon_api_key() -> str:
+    """Backward-compatible alias for Falcon dev credentials."""
+    return get_falcon_dev_api_key()
+
+
+def _infer_voice_info(voice_id: str) -> VoiceInfo:
+    """Build display metadata from a Murf voice id and FALCON_BATTLE_VOICES gender."""
     parts = voice_id.split("-")
-    accent_map = {
-        "US": "US", "UK": "UK", "IN": "IN", "HI": "HI", "BN": "BN", "TA": "TA",
-        "FR": "FR", "ES": "ES", "MR": "MR", "ML": "ML", "PH": "TL", "MX": "ES",
-    }
+    accent_map = {"US": "US", "UK": "UK", "IN": "IN"}
     accent = accent_map.get(parts[1], parts[1].upper()) if len(parts) >= 2 else "US"
     slug = parts[-1].split("[")[0].replace("cc-", "")
     name = slug[:1].upper() + slug[1:] if slug else voice_id
@@ -203,393 +168,37 @@ def _infer_murf_voice_info(voice_id: str) -> VoiceInfo:
     return VoiceInfo(voice_id, name, gender, accent)
 
 
-_murf_arena_ids = set(flatten_voice_ids(_MURF_PROD)) | set(flatten_voice_ids(_MURF_DEV_FALCON))
-_catalog_ids = {v.id for v in _VOICE_CATALOG}
-for _vid in sorted(_murf_arena_ids):
-    if _vid not in _catalog_ids:
-        _VOICE_CATALOG.append(_infer_murf_voice_info(_vid))
-        _catalog_ids.add(_vid)
-
-# Murf voiceId  ->  NewModel source_voice_id  (vendor mapping table)
-MURF_TO_OMNI_VOICE: Dict[str, str] = {
-    "en-US-terrell":   "en-US-terrell",
-    "en-US-natalie":   "en-US-natalie",
-    "en-US-charles":   "en-US-003",
-    "en-US-samantha":  "en-US-samantha",
-    "en-US-alicia":    "en-US-009-conversational",
-    "en-US-ronnie":    "en-US-ronnie",
-    "en-US-cooper":    "en-US-cooper",
-    "en-US-michelle":  "en-US-michelle",
-    "en-US-miles":     "en-US-miles",
-    "en-US-marcus":    "en-US-marcus",
-    "en-US-lucas":     "en-US-lucas",
-    "en-US-ken":       "en-US-ken",
-    "en-US-daisy":     "en-US-daisy",
-    "en-US-edmund":    "en-US-edmund",
-    "en-US-wayne":     "en-US-wayne",
-    "en-US-iris":      "en-US-iris",
-    "en-US-ryan":      "en-US-ryan",
-    "en-US-claire":    "en-US-claire",
-    "en-US-naomi":     "en-US-naomi",
-    "en-US-charlotte": "en-US-022-conversational",
-    "en-US-dylan":     "en-US-011-conversational",
-    "en-US-julia":     "en-US-002",
-    "en-US-carter":    "en-US-006-documentary",
-    "en-US-daniel":    "en-US-012-conversational",
-    "en-US-june":      "en-US-026-advertising",
-    "en-US-amara":     "en-US-028-podcast",
-    "en-US-river":     "en-US-029-podcast",
-    "en-US-evander":   "en-US-024-conversational",
-    "en-US-caleb":     "en-US-023-advertising",
-    "en-US-josie":     "en-US-036-podcast",
-    "en-US-molly":     "en-US-031-podcast",
-    "en-US-delilah":   "en-US-032-podcast",
-    "en-US-imani":     "en-US-034-podcast",
-    "en-US-jayden":    "en-US-035-podcast",
-    "en-US-denzel":    "en-US-033-podcast",
-    "en-US-angela":    "en-US-038-promotional",
-    "en-US-phoebe":    "en-US-043-conversational",
-    "en-US-riley":     "en-US-040-promotional",
-    "en-US-abigail":   "en-US-037-podcast",
-    "en-US-zion":      "en-US-042-promotional",
-    "en-US-ariana":    "en-US-041-podcast",
-    "en-US-paul":      "en-US-045-audiobook",
-    "en-US-maverick":  "en-US-048-M-Audiobook",
-    "hi-IN-shaan":     "hi-IN-010-conversational",
-    "hi-IN-rahul":     "hi-IN-013-conversational",
-    "hi-IN-shweta":    "hi-IN-005-conversational",
-    "hi-IN-ayushi":    "hi-IN-017-conversational",
-    "hi-IN-amit":      "hi-IN-012-podcast",
-    "hi-IN-kabir":     "hi-IN-016-conversational",
-    "bn-IN-anwesha":   "bn-IN-001-conversational",
-    "bn-IN-ishani":    "bn-IN-002-conversational",
-    "bn-IN-abhik":     "bn-IN-003-conversational",
-    "bn-IN-arnab":     "bn-IN-Pratik-004-M-Conversational",
-    "ta-IN-iniya":     "ta-IN-001-podcast",
-    "ta-IN-suresh":    "ta-IN-004-conversational",
-    "ta-IN-sarvesh":   "ta-IN-003-conversational",
-    "ta-IN-abirami":   "ta-IN-002-conversational",
-    # en-IN
-    "en-IN-alia":      "en-IN-014-documentary",
-    "en-IN-isha":      "en-IN-005-conversational",
-    "en-IN-aarav":     "en-IN-006-conversational",
-    "en-IN-eashwar":   "en-IN-009-conversational",
-    # en-UK
-    "en-UK-aiden":     "en-UK-aiden",
-    "en-UK-theo":      "en-UK-theo",
-    "en-UK-heidi":     "en-UK-018-conversational",
-    "en-UK-amber":     "en-UK-022-documentary",
-}
-for _vid in _murf_arena_ids:
-    MURF_TO_OMNI_VOICE.setdefault(_vid, _vid)
-
-_VOICE_INFO: Dict[str, VoiceInfo] = {v.id: v for v in _VOICE_CATALOG}
-if set(MURF_TO_OMNI_VOICE.keys()) != set(_VOICE_INFO.keys()):
-    _only_v = set(_VOICE_INFO.keys()) - set(MURF_TO_OMNI_VOICE.keys())
-    _only_m = set(MURF_TO_OMNI_VOICE.keys()) - set(_VOICE_INFO.keys())
-    raise ValueError(f"MURF_TO_OMNI_VOICE must match voice catalog keys. Only in catalog: {_only_v}. Only in map: {_only_m}.")
-# Both providers share the same Murf voiceId catalog (so blind A/B uses identical voices).
-_SHARED_VOICES: List[str] = list(_VOICE_INFO.keys())
-
-_FALCON_DEV_VOICES: List[str] = flatten_voice_ids(_MURF_DEV_FALCON)
+_FALCON_BATTLE_VOICE_IDS: List[str] = flatten_voice_ids(FALCON_BATTLE_VOICES)
 
 
-def get_falcon_supported_voices() -> List[str]:
-    """Voice IDs accepted for Falcon 2 validation."""
-    return list(_FALCON_DEV_VOICES)
+def get_falcon_supported_voices(provider_id: str = "falcon_dev") -> List[str]:
+    """Voice IDs used for Falcon validation (shared dev/prod battle pool)."""
+    return list(_FALCON_BATTLE_VOICE_IDS)
 
 
 def get_falcon_voice_info() -> Dict[str, VoiceInfo]:
-    return {vid: _VOICE_INFO[vid] for vid in _FALCON_DEV_VOICES if vid in _VOICE_INFO}
-
-def _voice_info_from(pairs: List[tuple], accent: str = "US") -> Dict[str, VoiceInfo]:
-    """Build a {voice_id: VoiceInfo} map from (id, name, gender) tuples."""
-    out: Dict[str, VoiceInfo] = {}
-    for voice_id, name, gender in pairs:
-        out[voice_id] = VoiceInfo(voice_id, name, gender, accent)
-    return out
-
-
-def _voice_info_from_pools(pools: Dict[str, Dict[str, List[str]]], prefix: str) -> Dict[str, VoiceInfo]:
-    """Build voice_info from per-language male/female pools (voice id keys)."""
-    out: Dict[str, VoiceInfo] = {}
-    for lang, pool in pools.items():
-        for gender, ids in pool.items():
-            for n, vid in enumerate(ids, 1):
-                out[vid] = VoiceInfo(
-                    vid, f"{prefix} {lang} {gender[0].upper()}{n}", gender)
-    return out
-
-
-# --- Competitor voice catalogs (id, display name, gender) --------------------
-_ELEVENLABS_VOICES = _voice_info_from_pools(_ELEVENLABS, "ElevenLabs")
-
-_DEEPGRAM_AURA1_VOICES = _voice_info_from([
-    ("aura-asteria-en", "Asteria", "female"),
-    ("aura-luna-en", "Luna", "female"),
-    ("aura-stella-en", "Stella", "female"),
-    ("aura-athena-en", "Athena", "female"),
-    ("aura-hera-en", "Hera", "female"),
-    ("aura-orion-en", "Orion", "male"),
-    ("aura-arcas-en", "Arcas", "male"),
-    ("aura-perseus-en", "Perseus", "male"),
-    ("aura-angus-en", "Angus", "male"),
-    ("aura-orpheus-en", "Orpheus", "male"),
-    ("aura-helios-en", "Helios", "male"),
-    ("aura-zeus-en", "Zeus", "male"),
-])
-
-_DEEPGRAM_AURA2_VOICES = _voice_info_from_pools(_DEEPGRAM, "Deepgram")
-
-_OPENAI_VOICES = _voice_info_from([
-    ("nova", "Nova", "female"),
-    ("shimmer", "Shimmer", "female"),
-    ("alloy", "Alloy", "female"),
-    ("onyx", "Onyx", "male"),
-    ("echo", "Echo", "male"),
-    ("fable", "Fable", "male"),
-])
-
-_CARTESIA_VOICES = _voice_info_from_pools(_CARTESIA, "Cartesia")
-
-_SARVAM_VOICES = _voice_info_from([
-    ("en-IN-female", "Female (English-India)", "female"),
-    ("en-IN-female-2", "Female 2 (English-India)", "female"),
-    ("hi-IN-female", "Female (Hindi-India)", "female"),
-    ("hi-IN-female-2", "Female 2 (Hindi-India)", "female"),
-    ("en-IN-male", "Male (English-India)", "male"),
-    ("en-IN-male-2", "Male 2 (English-India)", "male"),
-    ("hi-IN-male", "Male (Hindi-India)", "male"),
-    ("hi-IN-male-2", "Male 2 (Hindi-India)", "male"),
-    ("bn-IN-female", "Female (Bengali-India)", "female"),
-    ("bn-IN-female-2", "Female 2 (Bengali-India)", "female"),
-    ("bn-IN-male", "Male (Bengali-India)", "male"),
-    ("bn-IN-male-2", "Male 2 (Bengali-India)", "male"),
-    ("ta-IN-female", "Female (Tamil-India)", "female"),
-    ("ta-IN-female-2", "Female 2 (Tamil-India)", "female"),
-    ("ta-IN-male", "Male (Tamil-India)", "male"),
-    ("ta-IN-male-2", "Male 2 (Tamil-India)", "male"),
-    ("mr-IN-female", "Female (Marathi-India)", "female"),
-    ("mr-IN-female-2", "Female 2 (Marathi-India)", "female"),
-    ("mr-IN-male", "Male (Marathi-India)", "male"),
-    ("mr-IN-male-2", "Male 2 (Marathi-India)", "male"),
-    ("ml-IN-female", "Female (Malayalam-India)", "female"),
-    ("ml-IN-female-2", "Female 2 (Malayalam-India)", "female"),
-    ("ml-IN-male", "Male (Malayalam-India)", "male"),
-    ("ml-IN-male-2", "Male 2 (Malayalam-India)", "male"),
-], accent="IN")
-
-# Google Cloud TTS: voice name encodes the BCP-47 languageCode (e.g. en-US-Neural2-D).
-_GOOGLE_VOICES = _voice_info_from([
-    ("en-US-Neural2-F", "Neural2-F (US)", "female"),
-    ("en-US-Neural2-H", "Neural2-H (US)", "female"),
-    ("en-US-Neural2-D", "Neural2-D (US)", "male"),
-    ("en-US-Neural2-J", "Neural2-J (US)", "male"),
-    ("en-IN-Neural2-A", "Neural2-A (IN)", "female"),
-    ("en-IN-Neural2-D", "Neural2-D (IN)", "female"),
-    ("en-IN-Neural2-B", "Neural2-B (IN)", "male"),
-    ("en-IN-Neural2-C", "Neural2-C (IN)", "male"),
-    ("en-GB-Neural2-A", "Neural2-A (GB)", "female"),
-    ("en-GB-Neural2-C", "Neural2-C (GB)", "female"),
-    ("en-GB-Neural2-B", "Neural2-B (GB)", "male"),
-    ("en-GB-Neural2-D", "Neural2-D (GB)", "male"),
-    ("hi-IN-Neural2-A", "Neural2-A (HI)", "female"),
-    ("hi-IN-Neural2-D", "Neural2-D (HI)", "female"),
-    ("hi-IN-Neural2-B", "Neural2-B (HI)", "male"),
-    ("hi-IN-Neural2-C", "Neural2-C (HI)", "male"),
-    ("bn-IN-Standard-A", "Standard-A (BN)", "female"),
-    ("bn-IN-Standard-D", "Standard-D (BN)", "female"),
-    ("bn-IN-Standard-B", "Standard-B (BN)", "male"),
-    ("bn-IN-Standard-C", "Standard-C (BN)", "male"),
-    ("ta-IN-Standard-C", "Standard-C (TA)", "female"),
-    ("ta-IN-Standard-A", "Standard-A (TA)", "female"),
-    ("ta-IN-Standard-D", "Standard-D (TA)", "male"),
-    ("ta-IN-Standard-E", "Standard-E (TA)", "male"),
-    ("fr-FR-Neural2-C", "Neural2-C (FR)", "female"),
-    ("fr-FR-Neural2-E", "Neural2-E (FR)", "female"),
-    ("fr-FR-Neural2-D", "Neural2-D (FR)", "male"),
-    ("fr-FR-Neural2-B", "Neural2-B (FR)", "male"),
-    ("es-ES-Neural2-E", "Neural2-E (ES)", "female"),
-    ("es-ES-Neural2-H", "Neural2-H (ES)", "female"),
-    ("es-ES-Neural2-G", "Neural2-G (ES)", "male"),
-    ("es-ES-Neural2-F", "Neural2-F (ES)", "male"),
-    ("mr-IN-Wavenet-A", "Wavenet-A (MR)", "female"),
-    ("mr-IN-Standard-A", "Standard-A (MR)", "female"),
-    ("mr-IN-Wavenet-B", "Wavenet-B (MR)", "male"),
-    ("mr-IN-Wavenet-C", "Wavenet-C (MR)", "male"),
-    ("ml-IN-Wavenet-A", "Wavenet-A (ML)", "female"),
-    ("ml-IN-Wavenet-D", "Wavenet-D (ML)", "female"),
-    ("ml-IN-Wavenet-B", "Wavenet-B (ML)", "male"),
-    ("ml-IN-Wavenet-C", "Wavenet-C (ML)", "male"),
-])
-
-# Azure: voice name encodes the locale (e.g. en-US-JennyNeural).
-_AZURE_VOICES = _voice_info_from([
-    ("en-US-JennyNeural", "Jenny (US)", "female"),
-    ("en-US-AriaNeural", "Aria (US)", "female"),
-    ("en-US-GuyNeural", "Guy (US)", "male"),
-    ("en-US-DavisNeural", "Davis (US)", "male"),
-    ("en-IN-NeerjaNeural", "Neerja (IN)", "female"),
-    ("en-IN-AnanyaNeural", "Ananya (IN)", "female"),
-    ("en-IN-PrabhatNeural", "Prabhat (IN)", "male"),
-    ("en-IN-AaravNeural", "Aarav (IN)", "male"),
-    ("en-GB-SoniaNeural", "Sonia (GB)", "female"),
-    ("en-GB-LibbyNeural", "Libby (GB)", "female"),
-    ("en-GB-RyanNeural", "Ryan (GB)", "male"),
-    ("en-GB-ThomasNeural", "Thomas (GB)", "male"),
-    ("hi-IN-SwaraNeural", "Swara (HI)", "female"),
-    ("hi-IN-AnanyaNeural", "Ananya (HI)", "female"),
-    ("hi-IN-MadhurNeural", "Madhur (HI)", "male"),
-    ("hi-IN-AaravNeural", "Aarav (HI)", "male"),
-    ("bn-IN-TanishaaNeural", "Tanishaa (BN)", "female"),
-    ("bn-IN-NabanitaNeural", "Nabanita (BN)", "female"),
-    ("bn-IN-BashkarNeural", "Bashkar (BN)", "male"),
-    ("bn-IN-SamirNeural", "Samir (BN)", "male"),
-    ("ta-IN-PallaviNeural", "Pallavi (TA)", "female"),
-    ("ta-IN-SnehaNeural", "Sneha (TA)", "female"),
-    ("ta-IN-ValluvarNeural", "Valluvar (TA)", "male"),
-    ("ta-IN-SuryaNeural", "Surya (TA)", "male"),
-    ("fr-FR-DeniseNeural", "Denise (FR)", "female"),
-    ("fr-FR-EloiseNeural", "Eloise (FR)", "female"),
-    ("fr-FR-HenriNeural", "Henri (FR)", "male"),
-    ("fr-FR-AlainNeural", "Alain (FR)", "male"),
-    ("es-ES-ElviraNeural", "Elvira (ES)", "female"),
-    ("es-ES-AbrilNeural", "Abril (ES)", "female"),
-    ("es-ES-AlvaroNeural", "Alvaro (ES)", "male"),
-    ("es-ES-ArnauNeural", "Arnau (ES)", "male"),
-    ("mr-IN-AarohiNeural", "Aarohi (MR)", "female"),
-    ("mr-IN-ManoharNeural", "Manohar (MR)", "male"),
-    ("ml-IN-SobhanaNeural", "Sobhana (ML)", "female"),
-    ("ml-IN-MidhunNeural", "Midhun (ML)", "male"),
-])
-
-# Amazon Polly (neural engine). VoiceId implies the language.
-_POLLY_VOICES = _voice_info_from([
-    ("Joanna", "Joanna (US)", "female"),
-    ("Ruth", "Ruth (US)", "female"),
-    ("Matthew", "Matthew (US)", "male"),
-    ("Stephen", "Stephen (US)", "male"),
-    ("Amy", "Amy (GB)", "female"),
-    ("Emma", "Emma (GB)", "female"),
-    ("Brian", "Brian (GB)", "male"),
-    ("Arthur", "Arthur (GB)", "male"),
-    ("Aditi", "Aditi (IN)", "female"),
-    ("Kajal", "Kajal (IN)", "female"),
-    ("Celine", "Celine (FR)", "female"),
-    ("Lea", "Lea (FR)", "female"),
-    ("Mathieu", "Mathieu (FR)", "male"),
-    ("Remi", "Remi (FR)", "male"),
-    ("Lucia", "Lucia (ES)", "female"),
-    ("Mia", "Mia (ES)", "female"),
-    ("Enrique", "Enrique (ES)", "male"),
-    ("Sergio", "Sergio (ES)", "male"),
-])
-
-_DEEPGRAM_URL = "https://api.deepgram.com/v1/speak"
-_ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech"
-_CARTESIA_URL = "https://api.cartesia.ai/tts/bytes"
-_GOOGLE_URL = "https://texttospeech.googleapis.com/v1/text:synthesize"
+    return {vid: _infer_voice_info(vid) for vid in _FALCON_BATTLE_VOICE_IDS}
 
 TTS_PROVIDERS = {
-    "omni_tts": TTSConfig(
-        name="Falcon 2",
-        api_key_env="OMNI_API_KEY",
-        base_url=get_falcon_api_url(),
+    "falcon_dev": TTSConfig(
+        name="Dev",
+        api_key_env="FALCON_DEV_API_KEY",
+        base_url=get_falcon_dev_url(),
         supported_voices=get_falcon_supported_voices(),
         max_chars=5000,
         supports_streaming=True,
         model_name="FALCON",
         voice_info=get_falcon_voice_info(),
     ),
-    "murf_gen2": TTSConfig(
-        name="Murf Gen 2",
-        api_key_env="MURF_API_KEY",
-        base_url="https://api.murf.ai/v1/speech/stream",
-        supported_voices=list(_SHARED_VOICES),
-        max_chars=3000,
-        supports_streaming=True,
-        model_name="Gen2",
-        voice_info=dict(_VOICE_INFO),
-    ),
-    "elevenlabs_v3": TTSConfig(
-        name="ElevenLabs Flash 2.5",
-        api_key_env="ELEVENLABS_API_KEY",
-        base_url=_ELEVENLABS_URL,
-        supported_voices=list(_ELEVENLABS_VOICES.keys()),
+    "falcon_prod": TTSConfig(
+        name="Prod",
+        api_key_env="FALCON_PROD_API_KEY",
+        base_url=get_falcon_prod_url(),
+        supported_voices=get_falcon_supported_voices(),
         max_chars=5000,
-        supports_streaming=False,
-        model_name="eleven_flash_v2_5",
-        voice_info=dict(_ELEVENLABS_VOICES),
-    ),
-    "deepgram_aura2": TTSConfig(
-        name="Deepgram Aura 2",
-        api_key_env="DEEPGRAM_API_KEY",
-        base_url=_DEEPGRAM_URL,
-        supported_voices=list(_DEEPGRAM_AURA2_VOICES.keys()),
-        max_chars=2000,
         supports_streaming=True,
-        model_name="aura-2",
-        voice_info=dict(_DEEPGRAM_AURA2_VOICES),
-    ),
-    "cartesia_sonic3": TTSConfig(
-        name="Cartesia Sonic 3.5",
-        api_key_env="CARTESIA_API_KEY",
-        base_url=_CARTESIA_URL,
-        supported_voices=list(_CARTESIA_VOICES.keys()),
-        max_chars=3000,
-        supports_streaming=True,
-        model_name="sonic-3.5",
-        voice_info=dict(_CARTESIA_VOICES),
-    ),
-    "openai": TTSConfig(
-        name="OpenAI",
-        api_key_env="OPENAI_API_KEY",
-        base_url="https://api.openai.com/v1/audio/speech",
-        supported_voices=list(_OPENAI_VOICES.keys()),
-        max_chars=4096,
-        supports_streaming=False,
-        model_name="gpt-4o-mini-tts",
-        voice_info=dict(_OPENAI_VOICES),
-    ),
-    "sarvam_bulbul_v3": TTSConfig(
-        name="Sarvam Bulbul v3",
-        api_key_env="SARVAM_API_KEY",
-        base_url="https://api.sarvam.ai/text-to-speech",
-        supported_voices=list(_SARVAM_VOICES.keys()),
-        max_chars=2000,
-        supports_streaming=False,
-        model_name="bulbul:v3",
-        voice_info=dict(_SARVAM_VOICES),
-    ),
-    "google_tts": TTSConfig(
-        name="Google Cloud TTS",
-        api_key_env="GOOGLE_TTS_API_KEY",
-        base_url=_GOOGLE_URL,
-        supported_voices=list(_GOOGLE_VOICES.keys()),
-        max_chars=5000,
-        supports_streaming=False,
-        model_name="neural2",
-        voice_info=dict(_GOOGLE_VOICES),
-    ),
-    "azure_tts": TTSConfig(
-        name="Azure TTS",
-        api_key_env="AZURE_SPEECH_KEY",
-        base_url="",  # region-dependent, built at request time from AZURE_SPEECH_REGION
-        supported_voices=list(_AZURE_VOICES.keys()),
-        max_chars=5000,
-        supports_streaming=False,
-        model_name="neural",
-        voice_info=dict(_AZURE_VOICES),
-    ),
-    "amazon_polly": TTSConfig(
-        name="Amazon Polly",
-        api_key_env="AWS_ACCESS_KEY_ID",
-        base_url="",  # signed via boto3 using AWS_* env credentials
-        supported_voices=list(_POLLY_VOICES.keys()),
-        max_chars=3000,
-        supports_streaming=False,
-        model_name="neural",
-        voice_info=dict(_POLLY_VOICES),
+        model_name="FALCON",
+        voice_info=get_falcon_voice_info(),
     ),
 }
 
@@ -684,7 +293,7 @@ DATASET_CONFIG = {
 
 # UI Configuration
 UI_CONFIG = {
-    "page_title": "Murf Gen 2 vs NewModel — Listening Test",
+    "page_title": "Falcon Dev vs Prod — Listening Test",
     "page_icon": None,
     "layout": "wide",
     "sidebar_width": 300,
@@ -697,8 +306,10 @@ def get_api_key(provider: str) -> str:
     if provider not in TTS_PROVIDERS:
         raise ValueError(f"Unknown provider: {provider}")
 
-    if provider == "omni_tts":
-        return get_omni_falcon_api_key()
+    if provider == "falcon_dev":
+        return get_falcon_dev_api_key()
+    if provider == "falcon_prod":
+        return get_falcon_prod_api_key()
 
     env_var = TTS_PROVIDERS[provider].api_key_env
     api_key = _clean_env(env_var)
@@ -761,7 +372,19 @@ import math
 # Locked decision: Omni / NewModel is the anchor; its strength is pinned to 0.
 # Swap this single value (behind the PairingStrategy interface in scheduler.py)
 # to re-anchor without code changes.
-ANCHOR_PROVIDER: str = os.getenv("ARENA_ANCHOR", "omni_tts")
+def _resolve_anchor_provider(raw: str) -> str:
+    """Map legacy provider ids to the current Falcon dev/prod registry."""
+    legacy = {
+        "omni_tts": "falcon_dev",
+        "murf_gen2": "falcon_prod",
+    }
+    return legacy.get(raw, raw)
+
+
+# Production Falcon is the default reference (strength pinned to 0).
+ANCHOR_PROVIDER: str = _resolve_anchor_provider(
+    os.getenv("ARENA_ANCHOR", "falcon_prod")
+)
 
 # "anchor_only" (default) | "anchor_plus" | "all_vs_all" (see scheduler.py).
 PAIRING_STRATEGY: str = os.getenv("ARENA_PAIRING_STRATEGY", "anchor_only")
@@ -771,19 +394,11 @@ PAIRING_STRATEGY: str = os.getenv("ARENA_PAIRING_STRATEGY", "anchor_only")
 # add provider support below, and add corpus lines for the language.
 LANGUAGES: Dict[str, str] = dict(ARENA_LANGUAGES)
 
-# Which corpus bucket (voice_battle_corpus.tsv locale tag) feeds each language.
-# en-US reuses en-UK lines (UK English customer-service script).
+# Which corpus bucket feeds each language (all share en-shared).
 LANGUAGE_TO_CORPUS: Dict[str, str] = {
-    "en-US": "en-UK",
-    "en-IN": "en-IN",
-    "en-UK": "en-UK",
-    "hi-IN": "hi-IN",
-    "bn-IN": "bn-IN",
-    "ta-IN": "ta-IN",
-    "fr-FR": "fr-FR",
-    "es-ES": "es-ES",
-    "mr-IN": "mr-IN",
-    "ml-IN": "ml-IN",
+    "en-US": "en-shared",
+    "en-IN": "en-shared",
+    "en-UK": "en-shared",
 }
 
 # Legacy blind-UI locale key for each language (voice helpers + corpus loader).
@@ -791,16 +406,9 @@ LANGUAGE_TO_UI_LOCALE: Dict[str, str] = {
     "en-US": "US",
     "en-IN": "IN",
     "en-UK": "UK",
-    "hi-IN": "HI",
-    "bn-IN": "BN",
-    "ta-IN": "TA",
-    "fr-FR": "FR",
-    "es-ES": "ES",
-    "mr-IN": "MR",
-    "ml-IN": "ML",
 }
 
-# Per-provider languages with up to 2 male + 2 female voice ids per language.
+# Per-provider languages with male/female voice id lists per language.
 # Scheduler picks one at random per gender (see language_voices).
 PROVIDER_LANGUAGES = build_provider_languages(is_falcon_dev_stream())
 
@@ -841,6 +449,11 @@ ENGINE_CONFIG: Dict[str, Any] = {
 
 
 # --- Registry helpers --------------------------------------------------------
+def share_voice_across_providers(provider_a: str, provider_b: str) -> bool:
+    """True when both clips in a battle must use the same voice id."""
+    return provider_a in FALCON_PROVIDER_IDS and provider_b in FALCON_PROVIDER_IDS
+
+
 def anchor_provider() -> str:
     """The pinned anchor provider id (Omni)."""
     return ANCHOR_PROVIDER
@@ -861,7 +474,10 @@ def ui_locale_for_language(language: str) -> str:
 
 
 def provider_supports_language(provider_id: str, language: str) -> bool:
-    return language in PROVIDER_LANGUAGES.get(provider_id, {})
+    pool = PROVIDER_LANGUAGES.get(provider_id, {}).get(language)
+    if not pool:
+        return False
+    return bool(pool.get("male") or pool.get("female"))
 
 
 def representative_voice(provider_id: str, language: str, gender: str) -> Optional[str]:
