@@ -695,6 +695,7 @@ def leaderboard_page():
                 lb_charts.prep_head_to_head(list(bundle.head_to_head)),
             ),
             use_container_width=True,
+            key="leaderboard_head_to_head",
         )
     else:
         st.info(Leaderboard.NO_DATA)
@@ -708,6 +709,7 @@ def leaderboard_page():
         st.plotly_chart(
             lb_charts.forest_plot(list(bundle.overall_rows)),
             use_container_width=True,
+            key="leaderboard_overall_forest",
         )
 
     st.markdown(f"### {Leaderboard.PER_LANGUAGE}")
@@ -720,11 +722,13 @@ def leaderboard_page():
             title=Leaderboard.LANG_SCORE_FOREST,
         ),
         use_container_width=True,
+        key="leaderboard_lang_score_forest",
     )
     if bundle.heatmap_cells:
         st.plotly_chart(
             lb_charts.language_winrate_heatmap(list(bundle.heatmap_cells)),
             use_container_width=True,
+            key="leaderboard_lang_heatmap",
         )
 
     lang_pick = st.selectbox(
@@ -754,6 +758,7 @@ def leaderboard_page():
                     lb_charts.prep_head_to_head(list(lang_grid)),
                 ),
                 use_container_width=True,
+                key=f"leaderboard_lang_breakdown_{lang_pick}",
             )
 
     st.markdown(f"### {Leaderboard.VOICE_BREAKDOWN}")
@@ -772,6 +777,7 @@ def leaderboard_page():
                 scale_low_n=True,
             ),
             use_container_width=True,
+            key=f"leaderboard_voice_breakdown_{voice_lang}",
         )
 
 
