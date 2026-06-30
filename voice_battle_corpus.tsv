@@ -1,303 +1,103 @@
 # Voice Arena corpus — shared en-US / en-UK / en-IN (arena_comparison_corpus.py)
-# 300 items
+# 100 items
 
-en-shared	I've checked your order for the KitchenAid mixer. It is now ready for pickup at our Stanford Shopping Centre store.
-en-shared	NASA's Deep Space Network is a global system of antennas that communicates with interplanetary spacecraft, essential for space exploration.
-en-shared	"Ever make something happen when you were angry or scared?" The boy hesitates, remembering shattered glass and startled snakes.
-en-shared	"I thought I might find you here," murmurs an elderly wizard, tucking a curious lighter-like device back into his robe.
-en-shared	"It's a sign," one whispers in a robe, dripping hair. "It's a smoke alarm," comes the reply. "Signs don't flash this loud."
-en-shared	A 'jiffy' is an actual unit of time in physics, representing the time light takes to travel one centimeter in a vacuum.
-en-shared	A brick wall becomes a doorway with a few well-placed taps; beyond it, a city of wands, owls, and cauldrons hums to life.
-en-shared	A cockroach can live for weeks without its head because it breathes through small holes in its body segments.
-en-shared	A day on Venus is longer than a year on Venus; it takes 243 Earth days to rotate once but only 225 Earth days to orbit the Sun.
-en-shared	A light rain band will pass your route to work in twenty minutes. Bring an umbrella if you're heading out soon.
-en-shared	A new episode of Emily in Paris came out on Netflix today. Should I download this one before your flight tonight?
-en-shared	A photon takes 200,000 years to travel from the Sun's core to its surface, then just 8 minutes to reach Earth.
-en-shared	A search warrant authorizes law enforcement officers to enter premises and seize evidence in connection with a suspected crime.
-en-shared	A shrimp's heart is located in its head; specifically, it's in the thorax which is covered by the head shield.
-en-shared	A single bolt of lightning contains enough energy to toast 100,000 slices of bread.
-en-shared	A tabby cat sits very still on a garden wall—then, with a soft ripple of shadow, becomes a stern professor in emerald robes.
-en-shared	A teaspoon of neutron star material would weigh about 6 billion tons, equivalent to the weight of a mountain.
-en-shared	A word cloud with business terms, largest to smallest: Business, Success, Idea, Money, Creative, Presentation, and other smaller business terms.
-en-shared	A writ of habeas corpus is used to bring a prisoner or other detainee before the court to determine if the person's imprisonment or detention is lawful.
-en-shared	Across the water you can see the Statue of Liberty, holding her torch high as she has welcomed millions to America.
-en-shared	Air quality within a 2 mile radius has dropped to hazardous levels due to heavy pollution. Keep windows closed and limit outdoor exercise.
-en-shared	An adult human is made up of approximately 7 octillion atoms, a number with 27 zeros.
-en-shared	An octopus has three hearts, nine brains, and blue blood; they are among the most intelligent invertebrates.
-en-shared	And he's driving forward now, past one, past two, looks up, strikes it… oh, the keeper's just managed to get a hand to it.
-en-shared	And there's the whistle—settle in, because this one promises bite, bravery, and a little bit of brilliance.
-en-shared	Antarctica's Dry Valleys haven't seen rain for nearly 2 million years and are one of the driest places on Earth.
-en-shared	Approximately 90% of the cells in the human body are not human but are bacteria, fungi, and other microbes.
-en-shared	At the next intersection, turn left onto George Street. After 400 meters, your destination will be on the left.
-en-shared	Automatic renewal terms must be clearly disclosed under Australian consumer protection rules.
-en-shared	Badges? We ain't got no badges! We don't need no badges!
-en-shared	Bananas are slightly radioactive due to their potassium content, which includes the radioactive isotope potassium-40.
-en-shared	Based on your eating this week, you're short on fiber intake. Lentils or chickpeas at dinner would help.
-en-shared	Before accepting a settlement, understand that signing a release agreement may permanently waive your right to bring future claims.
-en-shared	Before us is Tower Bridge in London, a symbol of Victorian engineering that still opens for ships on the Thames.
-en-shared	Behind me is the Colosseum in Rome, nearly two thousand years old, yet still echoing with the roar of history.
-en-shared	Behind us is the Golden Gate Bridge, stretching across the bay in its unmistakable orange-red.
-en-shared	Ben steadies himself at his desk, eyes on the inbox count as if it were a heart monitor; across the floor, a birthday song swells around a cake he didn't order.
-en-shared	Blue Origin's New Shepard rocket successfully completed suborbital flights, including carrying founder Jeff Bezos to space in 2021.
-en-shared	Bond yields move inversely to prices, a concept that often confuses first-time investors but underpins fixed-income strategy.
-en-shared	Butterflies can taste with their feet; they have taste receptors on them to help find food.
-en-shared	Caffeine binds to adenosine receptors in the brain, preventing adenosine from sending its normal signal that it's time to slow down and rest.
-en-shared	Chemotherapy is a type of treatment that uses medicine to kill cancer cells. Imunotherapy is therapy in which drugs are used to stimulate the body's immune system to treat cancer.
-en-shared	China's Chang'e 4 mission achieved the first soft landing on the far side of the Moon in 2019, exploring previously uncharted lunar territory.
-en-shared	Chronic stress raises cortisol levels, which over time can impair immune function and memory.
-en-shared	Coming up next, a man who can solve a Rubik's Cube blindfolded — while juggling — and I've seen the rehearsal, it's absurd.
-en-shared	Compounding is often called the eighth wonder of the world, yet most investors underestimate how time magnifies returns.
-en-shared	Cooling-off periods give consumers the right to cancel certain contracts within a prescribed timeframe, often 14 days.
-en-shared	Copper prices slipped below $8,000 a tonne, reflecting weaker construction demand across key Asian economies.
-en-shared	Core workout suggestion: three planks, thirty seconds each, to finish strong today.
-en-shared	CRISPR gene editing allows scientists to target and modify specific DNA sequences with remarkable precision.
-en-shared	Currency traders are bracing for volatility as the ECB signals it may recalibrate its bond-buying programme sooner than expected.
-en-shared	Day 1 million of trying to sound like the AI voice narrator guy. What do you guys think?
-en-shared	Day 4 of going to the gym: my arms don't work anymore, but at least my water bottle collection is thriving
-en-shared	Deep sleep is when your brain consolidates memories and your body releases growth hormone for tissue repair.
-en-shared	Delegated legislation allows ministers or agencies to make rules under authority granted by an Act of Parliament.
-en-shared	Depression is associated with changes in neurotransmitters like serotonin, dopamine, and norepinephrine.
-en-shared	Despite a net loss of €42 million for the first half of 2025, the company forecasts significant earnings growth at 31.7% annually
-en-shared	Diagram of Soil Layers on Earth, from top going down: organic layer, topsoil layer, subsoil layer, parent rock layer, and last bedrock layer.
-en-shared	Diamonds rain on Saturn and Jupiter; lightning storms turn methane into soot, which hardens into falling diamonds.
-en-shared	Diplomatic immunity protects accredited diplomats from being subject to the jurisdiction of local courts.
-en-shared	Doing calming activities before bedtime, such as taking a bath or using relaxation techniques, might promote better sleep.
-en-shared	Double jeopardy prevents a person from being tried twice for the same offence once acquitted or convicted.
-en-shared	Each ETF has an investment mandate, and that outlines its objectives, approach, and any guidelines on what the ETF can or can't invest in.
-en-shared	Entrapment occurs when law enforcement induces someone to commit a crime they would not have otherwise committed.
-en-shared	ESA's Gaia spacecraft is creating a 3D map of over a billion stars in our galaxy, improving our understanding of the Milky Way's structure.
-en-shared	Even small amounts of blue light from phones or tablets can suppress melatonin production and delay your natural sleep cycle.
-en-shared	Extradition treaties enable countries to surrender individuals accused or convicted of crimes to another jurisdiction.
-en-shared	Feeling lucky? I can shuffle your saved restaurants and pick tonight's dinner spot for you two.
-en-shared	Flexibility work, like yoga or dynamic stretching, helps maintain joint mobility and reduces injury risk.
-en-shared	Global dealmaking reached $2.6 trillion in the first seven months of the year, the highest since the 2021 pandemic-era peak.
-en-shared	Gold held steady at $1,950 an ounce, as traders weighed softer US inflation data against a stronger dollar.
-en-shared	Good evening wherever you're tuning in from, the lights are on, the scarves are out, and you can feel the buzz building in every corner of this ground.
-en-shared	Good morning. Today in London it will be partly cloudy with a high of 17 degrees. You have three events on your calendar.
-en-shared	Good morning. You have two priority messages from overnight, with no priority emails requiring attention.
-en-shared	Gordon Ramsay would probably cry if he saw me call this burnt omelette rustic.
-en-shared	Greatness does not roar into existence; it grows slowly, piece by piece, in the discipline of ordinary days.
-en-shared	Green flags again, he times the restart beautifully, launches out of the final corner, and the field snakes behind him on cold tyres.
-en-shared	He steps inside one, dances past another, looks up, hits it… and the keeper gets a strong wrist to it.
-en-shared	Heart rate elevated beyond your usual range. Would you like me to log this for your doctor?
-en-shared	Here we are standing on the bustling streets of Tokyo's Shibuya Crossing, where thousands pour through every signal change.
-en-shared	Here's the break—pace to burn, options left and right, picks left, across the face… and somehow it stays out.
-en-shared	Here's the three most effective exercises that will transform your physique. No need to do fancy machine exercises.
-en-shared	High-intensity interval training can burn calories efficiently while improving cardiovascular and muscular endurance.
-en-shared	Hope is not a gift you stumble upon; it is forged in your choices, carved by your persistence, and carried forward in faith.
-en-shared	Hot water can freeze faster than cold water under certain conditions, a phenomenon known as the Mpemba effect.
-en-shared	Humans share 50% of their DNA with bananas, highlighting the common genetic heritage of all living organisms.
-en-shared	I can confirm your booking at the downtown hotel for 12 May. Would you like me to please add late check-in so your room is kept past 10 p.m.?
-en-shared	I can confirm your credit card refund of $82.40 was processed on April 15th. Please allow three business days for it to appear.
-en-shared	I can confirm your doctor's appointment for May 6th at 2 p.m. Would you like me to send a reminder the day before?
-en-shared	I can confirm your flight AA7396 is booked for May 15th at 10:30 a.m. Would you like to me add your system listed meal preference to this flight?
-en-shared	I can confirm your hotel reservation in Chicago for two nights. If you'd like an extra night, I can check availability and hold the room for you.
-en-shared	I can confirm your return ticket was successfully changed to May 20th. Would you like me to email the updated itinerary?
-en-shared	I can see you've reached gold tier this year. That gives you free shipping on every order. Would you like me to review the other benefits with you?
-en-shared	I can see your flight to Singapore on June 2nd is confirmed in economy. Would you like me to check seat upgrades in business class?
-en-shared	I can see your mobile plan is eligible for a free upgrade to 100 gigabytes of data per month. Would you like me to activate it?
-en-shared	I can see your Netflix subscription is set to renew on April 25th. Would you like me to update your payment method so there's no interruption?
-en-shared	I can see your order 7A41 for a MacBook shipped yesterday from Mascot warehouse and is due Friday. Could you please confirm if this is the product?
-en-shared	I can see your Spotify Premium is billed via Apple. You'll need to check your Apple PayID details — would you like me to guide you through that process?
-en-shared	I can see your taxi booking is confirmed for pickup at 6:30 a.m. outside your hotel lobby.
-en-shared	I can see your train booking from Melbourne to Sydney on April 18th has been issued. Would you like me to email the e-ticket to you now?
-en-shared	I can see your travel insurance includes coverage for lost luggage. Would you like me to open a claim for your missing bag?
-en-shared	I can't help how I speak. I'm just trying to do the best that I can. Let me know in the comments what you think.
-en-shared	I found 4 options that are healthy and match your typical preferences. I'd recommend going with the salmon sashimi bowl from Bowl House.
-en-shared	I found three cinema showtimes for the new Dune movie tomorrow near you. At Ritz Cinema, there are showings at 12pm, 3:30pm, 6pm.
-en-shared	I love the calls where the fix is instant and you can hear the relief spread like sunshine through the phone.
-en-shared	I noticed "descaling the espresso machine" on your to-do list. I can guide you through it whenever you're ready.
-en-shared	I noticed you logged your morning tablets, but not your evening dose yet. When you're ready, please take them or update the log.
-en-shared	I see you still have "follow-up on new article proposal" pending on today's to-do list. Please let me know if you'd like me to draft a message.
-en-shared	I see your Samsung Galaxy S24 was delivered on April 10th. Please let me know if you'd like me to activate the warranty registration on your behalf.
-en-shared	I think the data makes it pretty clear that exercise has a bigger impact on length and quality of life than any of the other metrics.
-en-shared	I thought growing up meant getting answers, but it turns out it just means learning to live with better-phrased questions.
-en-shared	I used to chase certainty like it was oxygen, but now I think the not-knowing is where all the living actually happens.
-en-shared	I wanted to be extraordinary, but sometimes I think surviving the ordinary is the braver kind of work.
-en-shared	I wonder if forgiveness is really about the other person, or if it's just a way of setting myself free without asking permission.
-en-shared	I'm so sorry your parcel is late. Let me please check the status for you now. Do you have a FedEx tracking ID I could use?
-en-shared	I'm sorry your printer is showing error code 31. A reset usually resolves this — would you like me to guide you through the steps?
-en-shared	I've checked your auto insurance policy. It covers windshield replacement with no excess. Would you like me to schedule a repair?
-en-shared	I've checked your gym membership and it's currently frozen until June 16. I can see you do still have one more freeze available this year.
-en-shared	I've checked your health insurance. You're covered for dental cleanings twice per year. Would you like me to book one now?
-en-shared	I've checked your insurance policy, and your roadside assistance is active. Would you like me to dispatch a tow truck to your location now?
-en-shared	I've checked your internet usage. You've used 85% of your monthly allowance. Would you like me to top up your plan?
-en-shared	I've checked your loyalty account. You now have 1,200 points available. Would you like me to redeem them for a $10 voucher?
-en-shared	I've confirmed your Uber booking for 8 p.m. tonight. The driver will arrive in a black Toyota Camry.
-en-shared	I've dimmed the lights to fifty percent brightness. Would you like me to start your playlist as well?
-en-shared	I've dimmed the living room lights to fifty percent for movie hour. Say the word if you'd like surround sound on.
-en-shared	I've pulled up your billing record and see a double charge on 15 April. Would you like me to process the refund back to your card now?
-en-shared	I've reviewed your broadband account and noticed three service drops last night. Would you like me to run a line test on your connection to ensure stability?
-en-shared	I've updated your washing machine repair in Birmingham to Friday morning as requested. A reminder text will go out the evening before.
-en-shared	In 1977, we received a mysterious radio signal from space called the 'Wow! Signal' that has never been fully explained.
-en-shared	In camera proceedings are those held privately in a judge's chambers, away from public or press access.
-en-shared	In civil procedure, ex parte refers to motions or applications made by one party without notice to or participation by the opposing party.
-en-shared	In zero gravity, a candle's flame is spherical and blue because convection doesn't carry away soot and hot gases.
-en-shared	Incoming call from Colonel Rhodes. Shall I patch him through, or shall we pretend you're saving the world?
-en-shared	India's Mars Orbiter Mission, Mangalyaan, made India the first nation in Asia to reach Mars orbit and the first nation to do so on its first attempt.
-en-shared	India's sovereign bond inclusion in global indices could attract billions in passive flows, boosting liquidity.
-en-shared	It's been a while since you last reached out to Sam. I can draft a friendly message for you to share.
-en-shared	It's oddly satisfying when all I have to say is 'try turning it off and on again' and it actually works.
-en-shared	Japan's Hayabusa2 mission successfully returned samples from asteroid Ryugu to Earth in 2020, providing clues about the early solar system.
-en-shared	Judicial review enables courts to determine whether the actions of government officials are lawful and within their powers.
-en-shared	Letters begin arriving, first one, then two, then a flurry; by Sunday, the chimney erupts into a storm of envelopes.
-en-shared	Lightning can create glass; when it strikes sand, the intense heat can fuse the sand into glass structures called fulgurites.
-en-shared	Lightning strikes Earth about 100 times every second, equating to around 8 million strikes per day worldwide.
-en-shared	Lovely angle on the pass, he's beyond his man, low cross fizzed in… and it only needed the faintest touch.
-en-shared	Mens rea refers to the mental element of a crime, while actus reus refers to the physical act.
-en-shared	Mindfulness meditation can decrease activity in the amygdala, the brain's fear center, helping reduce anxiety.
-en-shared	My name is Maximus Decimus Meridius, commander of the Armies of the North, General of the Felix Legions and loyal servant to the true emperor, Marcus Aurelius.
-en-shared	NASA's Chandra X-ray Observatory detects X-ray emissions from hot regions of the universe, like exploded stars and galaxy clusters.
-en-shared	NASA's InSight lander, arrived on Mars in 2018, is studying the planet's interior structure to learn how rocky planets form.
-en-shared	NASA's Mercury program (1958 to 1963) was the United States' first manned spaceflight program, aiming to put a human in orbit around Earth.
-en-shared	NASA's New Horizons mission performed the first flyby of Pluto in 2015, revealing detailed images of its surface and moons.
-en-shared	NASA's OSIRIS-REx mission collected samples from asteroid Bennu in 2020, aiming to return them to Earth for analysis.
-en-shared	NASA's Twin Study compared astronaut Scott Kelly, who spent a year in space, with his twin on Earth to study long-term spaceflight effects.
-en-shared	NASA's Voyager 2 is the only spacecraft to have visited Uranus and Neptune, providing valuable data on these distant planets.
-en-shared	Neutrinos are nearly massless subatomic particles that can pass through light-years of lead without interacting.
-en-shared	Next train to Circular Quay is six minutes away. Board the front carriage for more room.
-en-shared	Nomura's interest rate and exchange rate operations form the bulk of its macro products business. In the past year, the division's revenue topped 1 trillion yen.
-en-shared	Not to brag y'all, but I finally did it! I finally booked that one flight that was on my to-do list for a month that is now $800 more than when I first looked.
-en-shared	Oil steadied after a two-day decline, as traders weighed the possibility that OPEC+ may this weekend discuss fast-tracking its next round of supply hikes.
-en-shared	Okay, stop pouring for a second — give it a stir, now keep going slowly so the rice can absorb the sauce.
-en-shared	Omega-3 fatty acids found in fish and flax seeds help reduce inflammation and support heart and brain health.
-en-shared	Outdoor air temperature has cooled down. Would you like me to open any of the windows at home?
-en-shared	Parking on 23rd Street expires in twelve minutes. Please let me know if you wish to extend.
-en-shared	Plants communicate with each other using chemical signals through the air and even via underground fungal networks.
-en-shared	Power usage is trending higher than usual today. Would you like any further details?
-en-shared	Prompt: The SEC unveiled new disclosure requirements for private funds, a move expected to reshape reporting across the hedge fund industry.
-en-shared	Protein isn't just for muscle building — it plays a role in hormone regulation, immune defense, and tissue repair.
-en-shared	Quantum entanglement allows particles to be connected instantaneously over vast distances, puzzling even Einstein.
-en-shared	Quantum teleportation of information has been achieved over distances exceeding 1,200 kilometers using entangled photons.
-en-shared	Revenue from the capital markets business, which houses its trading desks, rose 6.9% to $723.4 million from the previous quarter.
-en-shared	Saturn's density is so low that if placed in water, it would float.
-en-shared	Scientists have discovered a massive cloud of water vapor in space that's 140 trillion times the mass of Earth's water.
-en-shared	Scientists have discovered planets that orbit pulsars, making them some of the most hostile environments in the universe.
-en-shared	Section 76(1)(d) provides that the Court may order a person to pay a pecuniary penalty if it is satisfied that a person has attempted to induce a person to contravene a provision in Part IV
-en-shared	Sir, if you continue flying at this altitude without de-icing protocols, you may soon find yourself an expensive popsicle.
-en-shared	Sleep was a little shorter than average yesterday. Heading to bed around 10pm tonight could help you feel more rested before your alarm.
-en-shared	Smart press there, they win it high, crowd on their feet, shot comes in… and it whistles past the upright.
-en-shared	So many investors immediately jump to choosing investments because, right, that's supposed to be the fun part of this whole thing. And they skip this process of investing.
-en-shared	Some metals explode when in contact with water, like potassium and sodium, due to violent exothermic reactions.
-en-shared	Some stars are so massive that when they die, they collapse directly into black holes without a supernova explosion.
-en-shared	Sometimes I get jealous of the toys kids are getting these days. Then I remember I'm an adult. I have money...
-en-shared	Sometimes the best sound is just hearing someone laugh when the problem turns out simpler than they feared.
-en-shared	Space debris, or 'space junk,' poses risks to spacecraft; over 27,000 pieces are tracked orbiting Earth to prevent collisions.
-en-shared	Space is not a complete vacuum; there are about 3 atoms per cubic meter in intergalactic space.
-en-shared	Spacesuits used during spacewalks are like personal spacecraft, providing life support, communication, and protection from space hazards.
-en-shared	SpaceX's Starship aims to be a fully reusable spacecraft designed for missions to Mars and beyond, potentially carrying up to 100 people.
-en-shared	Spend the day with me as a resident doctor on rotation in Australia. So I woke up at about twenty past seven, snoozing my alarm twice
-en-shared	Sputnik 1, launched by the Soviet Union in 1957, was the world's first artificial satellite, marking the start of the space age.
-en-shared	Stem cell therapy is being investigated for regenerative medicine, with potential applications in spinal cord injuries and heart disease.
-en-shared	Strength training builds not only muscle but also bone density, a crucial defense against osteoporosis.
-en-shared	Thank you for calling about your washing machine repair. Our in-store technician is booked for Thursday morning — would you like me to check for an earlier slot?
-en-shared	Thank you for calling. I can see your electricity usage in March was 420 kilowatt-hours, down 8% from February.
-en-shared	Thank you for calling. I've looked up your file and your Citi credit card replacement was issued yesterday. It should arrive within five to seven business days.
-en-shared	Thank you for calling. Your loyalty points balance is three thousand four hundred and twenty, which is enough for a twenty five dollar voucher. Would you like me to apply that to your next order?
-en-shared	Thank you for holding, Alex. I've updated your delivery address successfully. All future shipments will go to your new location.
-en-shared	Thank you for holding, Bella. I've confirmed with the Midtown store that your Dyson Airwrap is ready for collection under your name.
-en-shared	Thank you for holding, Michael. The team has finished configuring your internet line with a new IP address, and your service should now be restored. Could you please test it?
-en-shared	Thank you for holding. I've applied the spring promotion — you now receive double points on all purchases until May 31st.
-en-shared	Thank you for holding. I've reset your broadband profile on our system. Please restart your modem for the changes to apply.
-en-shared	Thank you for holding. I've updated your contact details. All appointment reminders will now go to your new number.
-en-shared	Thank you for your patience while on hold. The courier has confirmed your parcel is out for delivery today, and you'll receive SMS updates as it approaches.
-en-shared	Thank you for your patience. I've confirmed your specialist referral is valid for 12 months.
-en-shared	Thank you for your patience. The line fault on your street has been fixed. Please reconnect your devices and confirm if service is stable.
-en-shared	Thank you for your patience. Your car hire is booked from June 1st to June 5th. Would you like me to add GPS navigation?
-en-shared	That sandwich provides a good mix of carbs and protein. A handful of almonds on the side will add healthy fats for satiety.
-en-shared	The 'Overview Effect' is a cognitive shift reported by some astronauts when viewing Earth from space, leading to a sense of global connectedness.
-en-shared	The Amazon River once flowed in the opposite direction, from east to west, due to continental drift.
-en-shared	The atmosphere is electric and the cameras are rolling on what promises to be an unforgettable night.
-en-shared	The BIS said this year's near $10 trillion daily turnover reflected "elevated trading activity amid heightened FX volatility following tariff announcements".
-en-shared	The chicken thighs in your fridge will expire tomorrow. Would you like a dinner recipe using what you already have?
-en-shared	The Cold Atom Lab on the ISS allows scientists to study quantum phenomena in microgravity, reaching temperatures near absolute zero.
-en-shared	The company's revenue is primarily derived from its Sensors segment, which generated €1.98 billion, followed by the Optronics segment with €374 million
-en-shared	The Cosmic Microwave Background is the afterglow of the Big Bang, providing a snapshot of the early universe over 13 billion years ago.
-en-shared	The DNA in a human cell is coiled so tightly that if unwrapped, it would be about 2 meters long.
-en-shared	The Earth's core is as hot as the surface of the Sun, about 5,500 degrees celsius.
-en-shared	The Earth's rotation is gradually slowing down; in about 140 million years, a day will be 25 hours long.
-en-shared	The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion of the metal.
-en-shared	The element helium was first discovered in the Sun's spectrum during a solar eclipse before it was found on Earth.
-en-shared	The European Space Agency's Rosetta mission was the first to orbit and land a probe, Philae, on a comet in 2014.
-en-shared	The first space tourist, Dennis Tito, paid $20 million to visit the ISS in 2001 aboard a Russian Soyuz spacecraft.
-en-shared	The Hubble Space Telescope, launched in 1990, has provided invaluable data and stunning images, transforming our understanding of the universe.
-en-shared	The human eye can detect a candle flame 1.7 miles away in complete darkness.
-en-shared	The human nose can detect about one trillion different scents, far more than previously thought.
-en-shared	The International Space Station (ISS) has been continuously inhabited since November 2000, serving as a microgravity and space environment research lab.
-en-shared	The ISS travels at approximately 17,500 miles per hour, orbiting Earth every 90 minutes and experiencing 16 sunrises and sunsets each day.
-en-shared	The James Webb Space Telescope, set to launch soon, will observe the universe's first galaxies and study atmospheres of exoplanets.
-en-shared	The Kuiper Belt is a region beyond Neptune filled with icy bodies; Pluto is one of its most famous residents.
-en-shared	The largest volcano in the solar system is Olympus Mons on Mars, nearly three times the height of Mount Everest.
-en-shared	The Mars Helicopter Ingenuity became the first aircraft to achieve powered flight on another planet in 2021.
-en-shared	The Mars Rover Perseverance, landed in 2021, is searching for signs of ancient microbial life and collecting rock samples for possible return to Earth.
-en-shared	The meal in front of you is approximately 640 calories. Might I suggest adding some of the leftover spinach from last night for a boost of iron today?
-en-shared	The next train to Central is on time, departing in 4 minutes from Platform 2.
-en-shared	The Outer Space Treaty of 1967 forms the basis of international space law, prohibiting the placement of nuclear weapons in space.
-en-shared	The Parker Solar Probe, launched in 2018, is the closest human-made object to the Sun, set to approach within 3.83 million miles of its surface.
-en-shared	The principle of non-refoulement forbids returning asylum seekers to a country where they may face persecution.
-en-shared	The Sahara Desert was once a lush, green landscape with lakes and vegetation around 10,000 years ago.
-en-shared	The SEC said the suspension was temporary, ending at 11.59pm Eastern time on October 10.
-en-shared	The SEC unveiled new disclosure requirements for private funds, a move expected to reshape reporting across the hedge fund industry.
-en-shared	The securitisation of mortgage debt into financial instruments was among the core causes of the 2007-2009 global financial crisis.
-en-shared	The shirt you liked but was out of stock last week is back in stock in your size. Would you like me to order it?
-en-shared	The soup you're about to have is nutrient-rich but low in protein. A boiled egg on the side would balance it perfectly.
-en-shared	The Soviet Lunokhod 1, landed in 1970, was the first successful rover on the Moon, exploring the lunar surface for 10 months.
-en-shared	The Soviet Union's Vostok 1 mission made Yuri Gagarin the first human in space in 1961, orbiting Earth once during a 108-minute flight.
-en-shared	The Space Launch System (SLS) is NASA's newest heavy-lift rocket designed to carry astronauts to the Moon and potentially Mars.
-en-shared	The Space Shuttle program, operational from 1981 to 2011, was the first reusable spacecraft, completing 135 missions.
-en-shared	The suit is powering at 98 percent efficiency, though I wouldn't recommend testing gravity with it just yet.
-en-shared	The universe's largest known structure is the Hercules-Corona Borealis Great Wall, a galaxy cluster spanning 10 billion light-years.
-en-shared	The Voyager 1 spacecraft, launched in 1977, is now over 14 billion miles from Earth, making it the most distant human-made object.
-en-shared	The Voyager Golden Records carry sounds and images portraying the diversity of life on Earth, intended for any extraterrestrial life or future humans who may find them.
-en-shared	The wine glass fills again and laughter breaks through the pressure that had been building quietly for hours.
-en-shared	There are 'rivers' in the ocean called currents; the Gulf Stream moves more water than all Earth's rivers combined.
-en-shared	There are lakes of liquid methane on Saturn's moon Titan, making it one of the few places with liquid on its surface.
-en-shared	There are more trees on Earth than stars in the Milky Way; about 3 trillion trees compared to 100 to 400 billion stars.
-en-shared	There are two conditions that need to be met before you can get your property back: 1. The police no longer require it for evidence; and 2. It lawfully belongs to you
-en-shared	There is a species of jellyfish, Turritopsis dohrnii, that is biologically immortal and can revert to its juvenile form.
-en-shared	They said lifting weights builds character. I think all it built was my ability to groan when standing up.
-en-shared	To our right rises the Eiffel Tower, once dismissed as an iron monstrosity, now the heartbeat of Paris itself.
-en-shared	Traffic on your usual route is heavy. I've plotted an alternate way home if you prefer.
-en-shared	Tram services will be suspended from 9pm for maintenance. You may want to adjust your travel plans.
-en-shared	Uber will arrive 1 minute sooner, but Lyft is $3 cheaper for the same route. Would you like me to book Lyft?
-en-shared	UV index is 9 right now. Apply sunscreen and reapply in two hours if you're staying out.
-en-shared	Valentina Tereshkova became the first woman in space in 1963 aboard Vostok 6, orbiting Earth 48 times over three days.
-en-shared	Venus is the hottest planet in our solar system, with surface temperatures hot enough to melt lead, despite being second from the Sun.
-en-shared	Voyager 1, launched in 1977, is the first human-made object to enter interstellar space, currently over 14 billion miles from Earth
-en-shared	VR headset battery is at 18%. Place it on the dock now for your session later.
-en-shared	Water can exist in all three states (solid, liquid, and gas) at the same time at a specific temperature and pressure called the triple point.
-en-shared	We've just had a contestant sing Adele in front of Adele, and I've never seen a standing ovation arrive that fast.
-en-shared	Whenever there is a vacancy in the office of the Vice President, the President shall nominate a Vice President who shall take office upon confirmation by a majority vote of both Houses of Congress.
-en-shared	You've had 3 hours of screen time so far today, mostly on social apps. Should I enable wind-down mode early tonight?
-en-shared	You've met your daily macronutrient targets every day this week, well done!
-en-shared	Your account shows three recent failed login attempts. Could you please confirm this was you?
-en-shared	Your appliance repair has been rescheduled to April 22nd. I'll send you the technician's details the day before so you know who to expect.
-en-shared	Your auto accident claim number 58123 has been logged. Would you like me to send you a copy of the report?
-en-shared	Your booking for the Friday reformer class with Amanda has been confirmed. Look forward to seeing you then!
-en-shared	Your daughter's science project is still in the workshop. Shall I complete it properly, or let her think you did it yourself?
-en-shared	Your driver Alex is 3 minutes away in a white Toyota Corolla, license ending in 847.
-en-shared	Your flight to London on May 3rd has been delayed by one hour. Would you like me to rebook you on an earlier option?
-en-shared	Your flight to San Diego has been moved to Gate 22. I'll notify you when boarding starts.
-en-shared	Your follow-up appointment is set for June 12th. Please keep an eye out on your emails for a list of what to bring.
-en-shared	Your gas meter reading shows an unusual spike. Would you like me to schedule a technician to check for leaks?
-en-shared	Your health insurance card will expire in August. Would you like me to issue a new one now?
-en-shared	Your heart rate is elevated. Either you're under duress, or you've just seen yourself in the mirror again.
-en-shared	Your hotel reservation for two nights in Brisbane is confirmed. Would you like to extend it by an extra night?
-en-shared	Your insurance covers 80% of today's physiotherapy visit. Would you like me to send you the detailed breakdown?
-en-shared	Your internet service shows a fault in the local area. Technicians are working on it now. Service should be back by tonight.
-en-shared	Your Kindle was delivered at 11 a.m. this morning. Please check your front door, as the driver left it there with a photo confirmation.
-en-shared	Your loan application is currently in final review. You should receive a decision within two business days.
-en-shared	Your next meeting starts in 15 minutes. I can prepare a short summary of the last meeting notes if you'd like.
-en-shared	Your optometrist appointment is scheduled for Friday at 4 p.m. We do ask that you please arrive ten minutes early to complete any necessary forms.
-en-shared	Your payment extension is approved until May 5th. An updated invoice has been issued to reflect the new date.
-en-shared	Your plan is individualized based on extensive research and factors unique to you and your medical condition.
-en-shared	Your potential is louder than every doubt, and the moment you stop listening to fear is the moment you begin to soar.
-en-shared	Your ride-share driver is three minutes away. Please be ready outside your pickup location.
-en-shared	Your social calendar is now clear — though I suspect you'll fill it again with dangerous hobbies.
-en-shared	Your step count is at 8,400 today. Let's get to 10,000 with one more quick walk this evening.
-en-shared	Your story has not finished its arc — every chapter you live gives you the chance to rewrite what comes next.
-en-shared	Your subscription has been paused since March. I've reactivated it now, and you should receive a confirmation by email within the next five minutes.
-en-shared	Your train from Manchester to London on April 18th is confirmed. I've sent the e-ticket to your email so you can save it to your phone.
-en-shared	Your train ticket to Paris is confirmed for May 12th. Do you have a preference for an aisle or window seat?
-en-shared	Your water account shows a credit of $27. Would you like me to apply it to next month's bill?
-en-shared	Your water bill for April is $62. Would you like me to set up direct debit so payments are automatic each month?
+en-shared	Right, I've moved your delivery to Thursday the 14th, and, um, I'll send a text once it's out for delivery. Anything else I can sort for you?
+en-shared	So your refund of forty-two pounds fifty has gone through, and it should land back on your card in, well, three to five working days.
+en-shared	Okay, I've cancelled the old subscription and set up the new one starting next month. Did you want me to email a confirmation as well?
+en-shared	Thanks for holding, I really do appreciate your patience. I've had a look and the double charge on your account, that was an error our end, so I'm putting it right now.
+en-shared	Right, so I can see the parcel got stuck at the depot. Let me, let me just chase that for you and get it moving.
+en-shared	I'm so sorry about the mix-up with your bill. Bear with me, um, I'll get this credited back before we hang up.
+en-shared	Alright, I've got you in with Doctor Hayes on Monday at quarter past nine. Does that still work for you?
+en-shared	Just ringing to remind you about your haircut tomorrow at, uh, half three with Sophie. See you then.
+en-shared	We can do Tuesday or, I mean, Wednesday morning if that's easier. Which one suits you best?
+en-shared	Your boiler service is booked for Friday the 9th, and the engineer'll arrive sometime between eight and twelve.
+en-shared	Hiya, I'm calling because you're actually eligible for a cheaper tariff, and, well, I thought you'd want to know before your contract renews.
+en-shared	No pressure at all, but if you stay with us, I can knock, um, a fiver off your monthly bill for the next year.
+en-shared	I noticed you've not used your gym membership in a while. Would you like me to, you know, pause it rather than cancel?
+en-shared	Before we go on, I'll just need to confirm a couple of details. Can you, can you give me the first line of your address?
+en-shared	We spotted a login from a new device this morning. Was that, um, was that you trying to sign in?
+en-shared	Right, that's a match, thank you. Now, just to be safe, I'll send a one-time code to your mobile ending 4471.
+en-shared	Okay, so I'm lodging this as a first notice of loss. Can you tell me roughly what time the, the accident happened?
+en-shared	Your claim's still being assessed, and, um, the handler should be in touch within five working days.
+en-shared	Don't worry, I'm dispatching roadside assistance to you now. They reckon about, well, forty-five minutes to reach you.
+en-shared	Just so I've got it right, the policy covers accidental damage but not, sorry, not wear and tear.
+en-shared	Your current balance is one thousand, two hundred and six pounds. Would you like to hear your recent transactions too?
+en-shared	Right, I've ordered you a new card and it should, um, it should arrive within seven working days.
+en-shared	I can see the payment of ninety pounds went out yesterday to, let me check, to British Gas.
+en-shared	Your loan application's been approved, and the funds'll be in your account by, well, Friday at the latest.
+en-shared	The FTSE 100 closed up zero point four percent today, while sterling held steady against the dollar.
+en-shared	Ten-year gilt yields edged a little higher this morning, sitting at, um, around four point one percent.
+en-shared	Barclays reported stronger quarterly earnings, and the shares climbed roughly two percent on the news.
+en-shared	For clarity, a force majeure clause covers events outside either party's control, such as, well, flooding or industrial action.
+en-shared	I'm confirming your intake has been logged under reference LG-2284, and a caseworker will review it shortly.
+en-shared	Please note that anything discussed today remains, uh, strictly confidential between yourself and the firm.
+en-shared	Just so you're aware, this call is being recorded for training and quality purposes.
+en-shared	You've got a fourteen-day cooling-off period, so if you change your mind, you can cancel without, um, any charge.
+en-shared	I do need to mention the subscription renews automatically each year unless you tell us otherwise.
+en-shared	And can I just confirm you're happy for us to, you know, keep your details on file for marketing?
+en-shared	Okay, first thing, unplug the router at the wall and, um, give it about ten seconds before you plug it back in.
+en-shared	Right, now look for the little reset button on the back. You'll want to, to press and hold it for five seconds.
+en-shared	Once the light goes green, tap continue on your screen. Has it, has it turned green yet?
+en-shared	Now scroll down to the bottom of the form and, well, just pop your postcode in that last box.
+en-shared	I'm afraid the ten forty train to Manchester's been delayed by about twenty minutes. We're, we're really sorry for the wait.
+en-shared	Your taxi's two minutes away in a silver Skoda, registration, um, LK19 ZTR.
+en-shared	Right, your parcel's out for delivery today and should arrive between, let me see, one and three this afternoon.
+en-shared	I've rebooked you onto the next flight to Edinburgh at six fifteen. Does that, does that work for you?
+en-shared	Just a quick reminder to, um, fast from midnight before your blood test tomorrow morning.
+en-shared	Your results have come back and everything looks fine, but the nurse will still give you a ring to go through them.
+en-shared	Don't forget to take your, your tablets with food, and please bring your repeat prescription slip along.
+en-shared	Before you go, would you mind rating today's call from one to five, where five is, well, very satisfied?
+en-shared	And on a scale of nought to ten, how likely are you to recommend us to a friend?
+en-shared	Good morning, thanks for calling Brookfield Dental. How can I, how can I help you today?
+en-shared	Right, I'll just pop you through to the accounts team. Bear with me one moment, please.
+en-shared	Ooh, sounds like it's chucking it down your end too. Anyway, let's get this sorted for you.
+en-shared	Okay, so I've got your order moved to the fifteenth of March, and, um, you'll get a confirmation SMS in just a minute. Anything else I can help with?
+en-shared	Right, your refund of one thousand two hundred rupees has been processed, and it should reflect in three to five working days.
+en-shared	I've cancelled your monthly subscription, sorry, your yearly one, just like you asked. Would you like me to send the receipt to your email?
+en-shared	So your account shows you've used about two GB out of the five GB plan this month. Want me to read out the remaining days too?
+en-shared	Thank you for holding, ma'am. I've, uh, looked into the double charge, and I'm reversing the extra amount right now.
+en-shared	I'm really sorry your parcel hasn't reached yet. Let me, let me just track it for you and see what's going on.
+en-shared	Okay, I can see the issue with your broadband connection from here, and I'll raise a complaint with reference number BB four five two one.
+en-shared	Thanks for calling our support line. I mean, before we begin, can you confirm the registered mobile number on the account?
+en-shared	So I've booked your dental cleaning for Tuesday at four thirty PM with Dr Mehta. Does that time suit you?
+en-shared	Just a quick reminder, your car service is scheduled for tomorrow morning at ten, at the Andheri workshop.
+en-shared	Okay, um, the eleven o'clock slot is taken, but I can give you, like, eleven forty-five if that's alright?
+en-shared	Right, so you wanted to reschedule the haircut from Saturday to, sorry, was it Sunday or Monday?
+en-shared	Hi, I'm calling because you're, you know, eligible for a free upgrade to our hundred Mbps plan at no extra cost for three months.
+en-shared	I noticed you've been with us for over two years now, so we'd love to offer you a little loyalty discount on your next bill.
+en-shared	No pressure at all, but, um, would you like me to just explain how the new family plan saves you around four hundred rupees a month?
+en-shared	We miss having you with us, honestly, and I'd, I'd really like to share an offer to win you back if you've got a minute.
+en-shared	Alright, for security, can you, can you confirm the last four digits of your registered Aadhaar-linked number?
+en-shared	We noticed a login from a new device in Pune this morning. Was that, uh, was that you?
+en-shared	Okay, I've sent a one-time password to your phone. Could you read out the six digits for me once you get it?
+en-shared	So there were three failed login attempts on your account last night. For your safety, I'm going to walk you through resetting the password.
+en-shared	I'm sorry to hear about the accident. Let me, um, lodge a first notice of loss and get a claim number for you straight away.
+en-shared	Your policy does cover engine damage from flooding, but, well, I'll need a copy of the FIR before we proceed.
+en-shared	Okay, so your claim status right now is, it's under review, and our surveyor should visit within two working days.
+en-shared	Don't worry, I'm dispatching roadside assistance to your location near the Vashi toll plaza, and they'll reach in about thirty minutes.
+en-shared	Your current balance is, uh, eighteen thousand four hundred and fifty rupees as of today. Would you like the last five transactions as well?
+en-shared	Right, I've blocked your old card and a new one will be couriered to your registered address within seven working days.
+en-shared	So I can confirm your EMI of six thousand two hundred rupees was, was debited successfully this morning.
+en-shared	Your loan application is, um, almost done, just pending one document verification, and you'll hear back by Friday.
+en-shared	The Sensex closed up about half a percent today, while the rupee held steady around eighty-three to the dollar.
+en-shared	Gold prices eased slightly this morning, trading near sixty-two thousand rupees for ten grams.
+en-shared	Ten-year government bond yields ticked up to, uh, around seven point one percent in early trade.
+en-shared	Reliance shares gained nearly two percent after the earnings update, leading the gains on the Nifty.
+en-shared	Just so you're aware, an indemnity clause means one party agrees to cover certain losses of the other party.
+en-shared	Okay, so I'm confirming that you've submitted your intake form, and, um, our legal team will review it within five business days.
+en-shared	For the record, this agreement remains in force until either party gives thirty days written notice of termination.
+en-shared	Just to let you know, this call is being recorded for quality and training purposes.
+en-shared	So you do have a cooling-off period of, uh, fourteen days, during which you can cancel without any penalty.
+en-shared	I should mention this plan auto-renews each year, but we'll send you a reminder before that happens, okay?
+en-shared	Can you just confirm, for the record, that you consent to receiving promotional messages from us?
+en-shared	Alright, first, go ahead and unplug the router, wait about ten seconds, and then, um, plug it back in.
+en-shared	Okay, now on your screen, tap on Settings, then scroll down to, to where it says Wi-Fi, and let me know what you see.
+en-shared	Right, press and hold the power button for, like, five seconds until the light starts blinking.
+en-shared	So your flight to Delhi has been delayed by about forty minutes, and the new boarding time is six fifteen PM.
+en-shared	Your cab is, uh, just two minutes away. The driver's in a white Swift, number plate ending three seven two one.
+en-shared	Okay, I've rebooked you on the Shatabdi tomorrow morning, and your seat is, sorry, your coach is C four, seat number twelve.
+en-shared	Hi, just a gentle reminder that your blood test report is ready, and you can collect it from the lab after two PM today.
+en-shared	Before your appointment tomorrow, please remember not to eat or drink anything after, um, midnight, just water is fine.
+en-shared	This is just a reminder to take your evening medication, and your follow-up with Dr Nair is on the twentieth.
+en-shared	Before you go, on a scale of one to five, how would you rate the help you got today?
+en-shared	Thanks for calling Sunrise Clinic. Could you tell me, are you calling about an appointment or, um, a report?

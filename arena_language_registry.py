@@ -26,22 +26,21 @@ ARENA_LANGUAGES: Dict[str, str] = {
 # --- Add voices here (shared by falcon_dev and falcon_prod) -------------------
 FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
     "en-US": {
-        "male": ["en-US-tyler", "en-US-will", "en-US-caleb", "en-US-ezekiel"],
+        "male": ["en-US-tyler", "en-US-gordon", "en-US-caleb", "en-US-matthew"],
         "female": [
-            "en-US-lillian",
-            "en-US-olivia",
+            "en-US-luna",
             "en-US-alicia",
-            "en-US-madison",
             "en-US-natalie",
+            "en-US-ariana",
         ],
     },
     "en-UK": {
-        "male": ["en-UK-benedict", "en-UK-joshua", "en-UK-jake", "en-UK-bertie"],
-        "female": ["en-UK-lydia", "en-UK-lucy", "en-UK-sharon", "en-UK-heidi"],
+        "male": ["en-UK-benedict", "en-UK-joshua", "en-UK-jake"],
+        "female": ["en-UK-lydia", "en-UK-lucy", "en-UK-sharon"],
     },
     "en-IN": {
-        "male": ["en-IN-nikhil", "en-IN-samar", "en-IN-arjun", "en-IN-abhinav"],
-        "female": ["en-IN-anisha", "en-IN-anusha", "en-IN-pooja", "en-IN-palak"],
+        "male": ["en-IN-nikhil", "en-IN-samar", "en-IN-abhinav"],
+        "female": ["en-IN-anisha", "en-IN-anusha", "en-IN-pooja"],
     },
 }
 

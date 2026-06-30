@@ -10,9 +10,17 @@ import config
 from database import BenchmarkDatabase
 from tts_providers import TTSProviderFactory, TTSRequest
 
-# Voices stored on old battles that the live Falcon API no longer accepts.
+# Deprecated voice IDs on old battles → current catalog entries for re-synthesis.
 _BACKFILL_VOICE_ALIASES: dict[str, str] = {
-    "en-US-gordon": "en-US-will",
+    "en-US-will": "en-US-gordon",
+    "en-US-ezekiel": "en-US-matthew",
+    "en-US-lillian": "en-US-luna",
+    "en-US-olivia": "en-US-alicia",
+    "en-US-madison": "en-US-natalie",
+    "en-UK-bertie": "en-UK-jake",
+    "en-UK-heidi": "en-UK-sharon",
+    "en-IN-arjun": "en-IN-abhinav",
+    "en-IN-palak": "en-IN-pooja",
 }
 
 
