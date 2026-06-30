@@ -188,6 +188,7 @@ class LeaderboardBundle:
     winrate_by_lang: Dict[str, Tuple[Dict, ...]]
     heatmap_cells: Tuple[Dict, ...]
     overall_rows: Tuple[Dict, ...]
+    language_score_rows: Dict[str, Tuple[Dict, ...]]
     voice_by_lang: Dict[str, Tuple[Dict, ...]]
     language_weights: Dict[str, float]
 
@@ -219,6 +220,7 @@ def build_leaderboard_bundle(
             winrate_by_lang={},
             heatmap_cells=tuple(),
             overall_rows=tuple(),
+            language_score_rows={},
             voice_by_lang={},
             language_weights={},
         )
@@ -232,6 +234,10 @@ def build_leaderboard_bundle(
     overall = engine.fit_overall(fits, weights)
     report = ArenaReport(object(), engine=engine)
     overall_rows = report.overall_leaderboard(overall)
+    language_score_rows = {
+        lang: tuple(report.language_leaderboard(fit))
+        for lang, fit in fits.items()
+    }
 
     winrate_by_lang = {
         lang: winrate_grid_from_outcomes(
@@ -259,6 +265,7 @@ def build_leaderboard_bundle(
             config.get_language_display,
         )),
         overall_rows=tuple(overall_rows),
+        language_score_rows=language_score_rows,
         voice_by_lang={k: tuple(v) for k, v in voice_by_lang.items()},
         language_weights=weights,
     )

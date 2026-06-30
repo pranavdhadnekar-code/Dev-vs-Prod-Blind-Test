@@ -700,6 +700,16 @@ def leaderboard_page():
         )
 
     st.markdown(f"### {Leaderboard.PER_LANGUAGE}")
+    st.caption(Leaderboard.LANG_SCORE_FOREST_HINT)
+    st.plotly_chart(
+        lb_charts.forest_plot_by_language(
+            {lang: list(rows) for lang, rows in bundle.language_score_rows.items()},
+            lang_order=list(config.LANGUAGES.keys()),
+            lang_display=config.get_language_display,
+            title=Leaderboard.LANG_SCORE_FOREST,
+        ),
+        use_container_width=True,
+    )
     if bundle.heatmap_cells:
         st.plotly_chart(
             lb_charts.language_winrate_heatmap(list(bundle.heatmap_cells)),

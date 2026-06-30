@@ -89,6 +89,12 @@ class Leaderboard:
     OVERALL = "Overall ranking"
     WEIGHTS = "Language weights: {weights}"
     PER_LANGUAGE = "Results by language"
+    LANG_SCORE_FOREST = "Score by language"
+    LANG_SCORE_FOREST_HINT = (
+        "Per-language rankings with confidence intervals. "
+        "All three languages are shown; languages without votes appear as empty rows."
+    )
+    LANG_NO_COMPARISONS = "No comparisons yet"
     VOICE_BREAKDOWN = f"{PROD} win rate by voice"
     VOICE_BREAKDOWN_HINT = (
         f"Each {PROD} voice across all comparisons it appeared in. "

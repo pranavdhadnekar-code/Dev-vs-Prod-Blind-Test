@@ -7,11 +7,11 @@ Consistent color language:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import plotly.graph_objects as go
 
-from ui_copy import DEV_WINS, PROD_WINS, PROD
+from ui_copy import DEV_WINS, PROD_WINS, PROD, Leaderboard
 
 COLOR_FALCON = "#0d9488"
 COLOR_COMPETITOR = "#f97066"
@@ -211,6 +211,94 @@ def forest_plot(
         ),
     )
     return _chart_layout(fig, max(360, 58 * len(ordered)), margin_l=220, title=title)
+
+
+def prep_language_forest_rows(
+    rows_by_lang: Dict[str, List[Dict[str, Any]]],
+    lang_order: Sequence[str],
+    lang_display: Callable[[str], str],
+) -> tuple[List[str], List[Dict[str, Any]]]:
+    """Flatten per-language leaderboard rows; always include every language in order."""
+    labels: List[str] = []
+    plot_rows: List[Dict[str, Any]] = []
+    for lang in lang_order:
+        lang_rows = rows_by_lang.get(lang) or []
+        if not lang_rows:
+            labels.append(f"{lang_display(lang)} — {Leaderboard.LANG_NO_COMPARISONS}")
+            plot_rows.append({"empty": True})
+            continue
+        for r in sorted(lang_rows, key=lambda row: float(row.get("elo", 0)), reverse=True):
+            labels.append(
+                f"n={r.get('n_comparisons', 0)}  {lang_display(lang)} · {r['provider_name']}"
+                + (" ⚓" if r.get("is_anchor") else "")
+            )
+            plot_rows.append({**r, "empty": False})
+    return labels, plot_rows
+
+
+def forest_plot_by_language(
+    rows_by_lang: Dict[str, List[Dict[str, Any]]],
+    lang_order: Sequence[str],
+    lang_display: Callable[[str], str],
+    *,
+    title: Optional[str] = None,
+) -> go.Figure:
+    """Forest plot with every language listed (Prod + Dev per language when data exists)."""
+    labels, plot_rows = prep_language_forest_rows(rows_by_lang, lang_order, lang_display)
+    if not labels:
+        fig = go.Figure()
+        fig.add_annotation(text="No data yet", x=0.5, y=0.5, showarrow=False)
+        return fig
+
+    y_pos = list(range(len(labels)))
+    fig = go.Figure()
+    for i, (label, row) in enumerate(zip(labels, plot_rows)):
+        if row.get("empty"):
+            continue
+        lo, hi = float(row["elo_ci_low"]), float(row["elo_ci_high"])
+        score = float(row["elo"])
+        is_anchor = bool(row.get("is_anchor"))
+        color = COLOR_ANCHOR if is_anchor else COLOR_FALCON
+        fig.add_trace(go.Scatter(
+            x=[lo, hi], y=[i, i],
+            mode="lines",
+            line=dict(color=COLOR_CI, width=6),
+            showlegend=False,
+            hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=[score], y=[i],
+            mode="markers",
+            marker=dict(color=color, size=12, symbol="circle"),
+            showlegend=False,
+            customdata=[[row["provider_name"], lo, hi, row.get("n_comparisons", 0)]],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Score: %{x:.1f}<br>"
+                "CI: %{customdata[1]:.0f}–%{customdata[2]:.0f}<br>"
+                "n=%{customdata[3]}"
+                "<extra></extra>"
+            ),
+        ))
+        fig.add_trace(go.Scatter(
+            x=[score], y=[i + 0.32],
+            mode="text",
+            text=[f"{score:.0f}"],
+            textfont=dict(size=11, color=COLOR_SCORE_LABEL),
+            showlegend=False,
+            hoverinfo="skip",
+        ))
+
+    fig.update_layout(
+        xaxis_title="Score",
+        yaxis=dict(
+            tickmode="array",
+            tickvals=y_pos,
+            ticktext=labels,
+            autorange="reversed",
+        ),
+    )
+    return _chart_layout(fig, max(420, 52 * len(labels)), margin_l=260, title=title)
 
 
 def language_winrate_heatmap(
