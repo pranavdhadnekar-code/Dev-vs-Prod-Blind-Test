@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
+import shutil
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, Optional
 
@@ -39,6 +41,30 @@ except Exception as exc:  # pragma: no cover - import guard
         "audio_norm requires 'pydub' (and ffmpeg on PATH). "
         "Install with: pip install pydub and a system ffmpeg."
     ) from exc
+
+
+def _ensure_ffmpeg() -> None:
+    """Use system ffmpeg if present, else the binary bundled with imageio-ffmpeg.
+
+    Streamlit Cloud's apt installer currently fails (expired Debian Bullseye
+    security repo), so we cannot rely on packages.txt for ffmpeg.
+    """
+    if shutil.which("ffmpeg"):
+        return
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return
+    if not exe or not os.path.isfile(exe):
+        return
+    AudioSegment.converter = exe
+    AudioSegment.ffmpeg = exe
+    ffmpeg_dir = os.path.dirname(exe)
+    os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
+
+
+_ensure_ffmpeg()
 
 try:
     import pyloudnorm as pyln

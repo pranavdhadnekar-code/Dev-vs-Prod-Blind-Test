@@ -11,6 +11,8 @@ openai>=1.0.0
 scipy>=1.10.0
 psycopg[binary]>=3.1.0
 pydub>=0.25.1
+imageio-ffmpeg>=0.5.1
+# Python 3.13 removed the stdlib `audioop` module that pydub imports.
 # Python 3.13 removed the stdlib `audioop` module that pydub imports.
 # This backport restores it on 3.13/3.14 (Streamlit Cloud's default runtime).
 audioop-lts>=0.2.1; python_version >= "3.13"
