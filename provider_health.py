@@ -17,6 +17,8 @@ _TEST_TEXT = {
     "en-US": "Voice arena connection test.",
     "en-IN": "Voice arena connection test.",
     "en-UK": "Voice arena connection test.",
+    "hi-IN": "यह एक वॉइस टेस्ट है।",
+    "bn-IN": "এটি একটি ভয়েস টেস্ট।",
 }
 def _probe_timeout(provider_id: str, timeout: Optional[float]) -> float:
     if timeout is not None:

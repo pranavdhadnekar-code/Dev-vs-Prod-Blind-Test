@@ -1,19 +1,35 @@
 """Per-language voice pools for Falcon dev vs prod blind battles.
 
-Edit FALCON_BATTLE_VOICES below. Dev and prod always use the **same** voice id
+Edit FALCON_BATTLE_VOICES below. Dev and prod always use the **same** registry id
 per battle (see config.share_voice_across_providers and scheduler).
 
-Format per language: lists of Murf voice ids under ``male`` / ``female``.
+Internal ids are ``{language}-{voice_id}`` (e.g. ``en-US-Joshua``) so the same
+Falcon voice name can appear in more than one locale. Synthesis looks up
+FALCON_VOICE_CONFIGS to send the API ``voiceId``, ``style``, and optional
+``multiNativeLocale``.
 """
 from __future__ import annotations
 
-from typing import Dict, List
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 VoicePool = Dict[str, List[str]]
+VoiceSpec = Union[Tuple[str, str], Tuple[str, str, str]]
 
 
-def v(m1: str, m2: str, f1: str, f2: str) -> VoicePool:
-    return {"male": [m1, m2], "female": [f1, f2]}
+@dataclass(frozen=True)
+class FalconVoiceConfig:
+    """API fields for one battle voice in a language."""
+
+    language: str
+    voice_id: str
+    style: str
+    multi_native_locale: Optional[str] = None
+    model: str = "Falcon"
+
+    @property
+    def registry_id(self) -> str:
+        return f"{self.language}-{self.voice_id}"
 
 
 # BCP-47 keys used across the arena UI, scheduler, and corpus.
@@ -21,30 +37,136 @@ ARENA_LANGUAGES: Dict[str, str] = {
     "en-US": "English (US)",
     "en-IN": "English (India)",
     "en-UK": "English (UK)",
+    "hi-IN": "Hindi",
+    "bn-IN": "Bengali",
 }
 
+# Blind-UI locale key (US/IN/UK/HI/BN) for catalog accent matching.
+LANGUAGE_UI_ACCENT: Dict[str, str] = {
+    "en-US": "US",
+    "en-IN": "IN",
+    "en-UK": "UK",
+    "hi-IN": "HI",
+    "bn-IN": "BN",
+}
+
+FALCON_VOICE_CONFIGS: Dict[str, FalconVoiceConfig] = {}
+
+
+def _register(
+    language: str,
+    voice_id: str,
+    style: str,
+    locale: Optional[str] = None,
+) -> str:
+    cfg = FalconVoiceConfig(language, voice_id, style, locale)
+    FALCON_VOICE_CONFIGS[cfg.registry_id] = cfg
+    return cfg.registry_id
+
+
+def _ids(language: str, specs: Sequence[VoiceSpec]) -> List[str]:
+    out: List[str] = []
+    for spec in specs:
+        if len(spec) == 3:
+            voice_id, style, locale = spec
+            out.append(_register(language, voice_id, style, locale))
+        else:
+            voice_id, style = spec
+            out.append(_register(language, voice_id, style))
+    return out
+
+
+def _pool(
+    language: str,
+    male: Sequence[VoiceSpec],
+    female: Sequence[VoiceSpec],
+) -> VoicePool:
+    return {"male": _ids(language, male), "female": _ids(language, female)}
+
+
 # --- Add voices here (shared by falcon_dev and falcon_prod) -------------------
+# Each spec is (voice_id, style) or (voice_id, style, multiNativeLocale).
 FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
-    "en-US": {
-        "male": ["en-US-tyler", "en-US-gordon", "en-US-caleb", "en-US-matthew"],
-        "female": [
-            "en-US-luna",
-            "en-US-alicia",
-            "en-US-natalie",
-            "en-US-ariana",
+    "en-US": _pool(
+        "en-US",
+        male=[
+            ("Joshua", "Conversational", "en-US"),
+            ("Bertie", "Conversational", "en-US"),
+            ("Gordon", "Conversational"),
+            ("Carlos", "Conversational", "en-US"),
         ],
-    },
-    "en-UK": {
-        "male": ["en-UK-benedict", "en-UK-joshua", "en-UK-jake"],
-        "female": ["en-UK-lydia", "en-UK-lucy", "en-UK-sharon"],
-    },
-    "en-IN": {
-        "male": ["en-IN-nikhil", "en-IN-samar", "en-IN-abhinav"],
-        "female": ["en-IN-anisha", "en-IN-anusha", "en-IN-pooja"],
-    },
+        female=[
+            ("Nimisha", "Conversational", "en-US"),
+            ("Heidi", "Conversational", "en-US"),
+            ("Madison", "Conversational"),
+            ("Abirami", "Conversational", "en-US"),
+        ],
+    ),
+    "en-UK": _pool(
+        "en-UK",
+        male=[
+            ("Joshua", "Conversational"),
+            ("Bertie", "Conversational"),
+            ("Benedict", "Conversational"),
+            ("Freddie", "Conversational"),
+        ],
+        female=[
+            ("Lydia", "Conversational"),
+            ("Ruby", "Conversational"),
+            ("Sharon", "Conversational"),
+            ("Heidi", "Conversational"),
+        ],
+    ),
+    "en-IN": _pool(
+        "en-IN",
+        male=[
+            ("Abhinav", "Conversational"),
+            ("Nikhil", "Conversational"),
+            ("Samar", "Conversational"),
+            ("Aarav", "Conversational"),
+        ],
+        female=[
+            ("Anisha", "Conversation"),
+            ("Pooja", "Conversational"),
+            ("Anusha", "Conversational"),
+            ("Arohi", "Conversational"),
+        ],
+    ),
+    "hi-IN": _pool(
+        "hi-IN",
+        male=[
+            ("Karthikeyan", "Conversation", "hi-IN"),
+            ("Abhinav", "Conversational", "hi-IN"),
+            ("Hardik", "Conversational", "hi-IN"),
+            ("Madhavan", "Conversational", "hi-IN"),
+        ],
+        female=[
+            ("Ayushi", "Conversation"),
+            ("Namrita", "Conversational"),
+            ("Alia", "Conversational", "hi-IN"),
+            ("Pooja", "Conversational", "hi-IN"),
+        ],
+    ),
+    "bn-IN": _pool(
+        "bn-IN",
+        male=[
+            ("Subhankar", "Conversational"),
+            ("Abhik", "Conversational"),
+            ("Arnab", "Conversational"),
+        ],
+        female=[
+            ("Debarati", "Conversational"),
+            ("Anisha", "Conversational", "bn-IN"),
+            ("Ishani", "Conversational"),
+        ],
+    ),
 }
 
 FALCON_PROVIDER_IDS = frozenset({"falcon_dev", "falcon_prod"})
+
+
+def get_falcon_voice_config(registry_id: str) -> Optional[FalconVoiceConfig]:
+    return FALCON_VOICE_CONFIGS.get(registry_id)
 
 
 def _languages_with_voices() -> set[str]:

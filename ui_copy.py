@@ -64,6 +64,7 @@ class Battle:
     SHOW_TEXT = "Spoken text"
     SAMPLE_A = "Sample A"
     SAMPLE_B = "Sample B"
+    SAMPLE_HEADING = "{sample} · {voice}"
     LISTENED = "I listened to {sample}"
     DOWNLOAD = "Download"
     COMMENT = "Add a note (optional)"

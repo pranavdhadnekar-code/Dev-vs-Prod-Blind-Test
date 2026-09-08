@@ -36,6 +36,7 @@ import ui_copy
 from ui_copy import Nav, Battle, Leaderboard, Comments, Export, Health, Errors
 from scheduler import Scheduler, SchedulerError
 from tts_providers import TTSProviderFactory, TTSRequest
+from arena_language_registry import get_falcon_voice_config
 from geolocation import geo_service
 from security import session_manager
 from database import BenchmarkDatabase
@@ -229,6 +230,17 @@ def append_voice_to_comment(comment: str, voice_id: str) -> str:
     name = info.name if info else voice_id
     base = comment.strip().rstrip(".")
     return f"{base}. Voice={name}"
+
+
+def _sample_voice_label(voice_id: str) -> str:
+    """'Voice name - multiNativeLocale' (falls back to battle locale)."""
+    cfg = get_falcon_voice_config(voice_id)
+    if not cfg:
+        info = config.get_falcon_voice_info().get(voice_id)
+        name = info.name if info else voice_id
+        return name
+    locale = cfg.multi_native_locale or cfg.language
+    return f"{cfg.voice_id} - {locale}"
 
 
 def _location() -> dict:
@@ -515,7 +527,10 @@ def battle_page():
     st.title(Battle.TITLE)
     health = _ensure_provider_health()
 
-    languages = st.session_state.scheduler.available_languages()
+    languages = [
+        lang for lang in config.LANGUAGES
+        if lang in set(st.session_state.scheduler.available_languages())
+    ]
     if not provider_health.arena_ready(health) or not languages:
         st.warning(Battle.NOT_READY)
         return
@@ -614,7 +629,7 @@ def battle_page():
     player_key = plan.battle_id
     left_col, right_col = st.columns(2)
     with left_col:
-        st.markdown(f"##### {Battle.SAMPLE_A}")
+        st.markdown(f"##### {Battle.SAMPLE_HEADING.format(sample=Battle.SAMPLE_A, voice=_sample_voice_label(plan.left_voice))}")
         _battle_player(
             st.session_state.clips["left"],
             key=f"battle_player_a_{player_key}",
@@ -625,7 +640,7 @@ def battle_page():
             key=f"played_left_{player_key}",
         )
     with right_col:
-        st.markdown(f"##### {Battle.SAMPLE_B}")
+        st.markdown(f"##### {Battle.SAMPLE_HEADING.format(sample=Battle.SAMPLE_B, voice=_sample_voice_label(plan.right_voice))}")
         _battle_player(
             st.session_state.clips["right"],
             key=f"battle_player_b_{player_key}",

@@ -24,6 +24,7 @@ from config import (
     falcon_synthesis_timeout,
     NORMALIZATION,
 )
+from arena_language_registry import get_falcon_voice_config
 
 def humanize_provider_error(provider_id: str, status: int, error_text: str) -> str:
     """Map raw vendor errors to actionable messages for operators/raters."""
@@ -414,15 +415,22 @@ class Falcon2TTSProvider(TTSProvider):
 
         url = get_falcon_api_url(self.provider_id)
         headers = {**falcon_auth_headers(self.api_key), "Content-Type": "application/json"}
+        voice_cfg = get_falcon_voice_config(request.voice)
+        api_voice = voice_cfg.voice_id if voice_cfg else request.voice
+        locale = voice_cfg.language if voice_cfg else self._locale_for_voice(request.voice)
         payload = {
             "text": request.text,
-            "voiceId": request.voice,
+            "voiceId": api_voice,
             "model": "FALCON",
-            "locale": self._locale_for_voice(request.voice),
+            "locale": locale,
             "format": "WAV",
             "sampleRate": ARENA_SAMPLE_RATE,
             "channelType": "MONO",
         }
+        if voice_cfg:
+            payload["style"] = voice_cfg.style
+            if voice_cfg.multi_native_locale:
+                payload["multiNativeLocale"] = voice_cfg.multi_native_locale
 
         try:
             timeout_s = falcon_synthesis_timeout(self.provider_id)
@@ -437,7 +445,16 @@ class Falcon2TTSProvider(TTSProvider):
                     body, latency_ms = await self.read_body_ttfb(response, send_time)
                     if response.status == 200 and body:
                         fmt = "wav" if body[:4] == b"RIFF" else "mp3"
-                        meta = {"provider": self.provider_id, "model": "FALCON", "voice": request.voice}
+                        meta = {
+                            "provider": self.provider_id,
+                            "model": "FALCON",
+                            "voice": request.voice,
+                            "api_voice": api_voice,
+                        }
+                        if voice_cfg:
+                            meta["style"] = voice_cfg.style
+                            if voice_cfg.multi_native_locale:
+                                meta["multiNativeLocale"] = voice_cfg.multi_native_locale
                         if fmt == "wav":
                             meta.update(_wav_meta())
                         else:

@@ -21,7 +21,11 @@ except ImportError:
     pass
 
 import config
-from arena_comparison_corpus import ARENA_COMPARISON_TEXTS
+from arena_comparison_corpus import (
+    ARENA_COMPARISON_TEXTS,
+    BANGLA_COMPARISON_TEXTS,
+    HINDI_COMPARISON_TEXTS,
+)
 from arena_language_registry import FALCON_BATTLE_VOICES
 from database import BenchmarkDatabase
 from scheduler import BattlePlan, assign_sides
@@ -33,29 +37,39 @@ COMPETITOR = "falcon_dev" if ANCHOR == "falcon_prod" else "falcon_prod"
 # (language, outcome, days_ago) — outcome from rater: A=left, B=right, tie
 VOTE_PLAN = [
     # en-US — prod anchor slightly ahead overall
-    ("en-US", "A", 12, "male", "en-US-will", "Prod sounds clearer on sibilants."),
-    ("en-US", "B", 11, "female", "en-US-lillian", "Dev felt more natural in pacing."),
-    ("en-US", "A", 10, "male", "en-US-caleb", None),
-    ("en-US", "B", 9, "female", "en-US-olivia", "Less robotic on longer sentences."),
-    ("en-US", "tie", 8, "male", "en-US-tyler", "Honestly could not tell them apart."),
-    ("en-US", "A", 7, "female", "en-US-madison", None),
-    ("en-US", "B", 6, "male", "en-US-ezekiel", "Dev pronunciation of numbers was better."),
-    ("en-US", "A", 5, "female", "en-US-natalie", None),
+    ("en-US", "A", 12, "male", "en-US-Joshua", "Prod sounds clearer on sibilants."),
+    ("en-US", "B", 11, "female", "en-US-Nimisha", "Dev felt more natural in pacing."),
+    ("en-US", "A", 10, "male", "en-US-Bertie", None),
+    ("en-US", "B", 9, "female", "en-US-Heidi", "Less robotic on longer sentences."),
+    ("en-US", "tie", 8, "male", "en-US-Gordon", "Honestly could not tell them apart."),
+    ("en-US", "A", 7, "female", "en-US-Madison", None),
+    ("en-US", "B", 6, "male", "en-US-Carlos", "Dev pronunciation of numbers was better."),
+    ("en-US", "A", 5, "female", "en-US-Abirami", None),
     # en-UK
-    ("en-UK", "B", 12, "male", "en-UK-benedict", "Dev had warmer tone for this voice."),
-    ("en-UK", "A", 11, "female", "en-UK-lydia", None),
-    ("en-UK", "B", 10, "male", "en-UK-joshua", "Slight metallic edge on prod clip."),
-    ("en-UK", "tie", 9, "female", "en-UK-lucy", None),
-    ("en-UK", "A", 8, "male", "en-UK-jake", None),
-    ("en-UK", "B", 7, "female", "en-UK-sharon", "Dev pause before commas felt right."),
+    ("en-UK", "B", 12, "male", "en-UK-Benedict", "Dev had warmer tone for this voice."),
+    ("en-UK", "A", 11, "female", "en-UK-Lydia", None),
+    ("en-UK", "B", 10, "male", "en-UK-Joshua", "Slight metallic edge on prod clip."),
+    ("en-UK", "tie", 9, "female", "en-UK-Ruby", None),
+    ("en-UK", "A", 8, "male", "en-UK-Freddie", None),
+    ("en-UK", "B", 7, "female", "en-UK-Sharon", "Dev pause before commas felt right."),
     # en-IN
-    ("en-IN", "A", 12, "male", "en-IN-nikhil", None),
-    ("en-IN", "B", 11, "female", "en-IN-anisha", "Dev intonation on Indian English was stronger."),
-    ("en-IN", "A", 10, "male", "en-IN-samar", None),
-    ("en-IN", "B", 9, "female", "en-IN-anusha", None),
-    ("en-IN", "tie", 8, "male", "en-IN-arjun", "Both acceptable for this sentence."),
-    ("en-IN", "A", 7, "female", "en-IN-pooja", None),
-    ("en-IN", "B", 6, "male", "en-IN-abhinav", "Prod clip clipped slightly at the end."),
+    ("en-IN", "A", 12, "male", "en-IN-Nikhil", None),
+    ("en-IN", "B", 11, "female", "en-IN-Anisha", "Dev intonation on Indian English was stronger."),
+    ("en-IN", "A", 10, "male", "en-IN-Samar", None),
+    ("en-IN", "B", 9, "female", "en-IN-Anusha", None),
+    ("en-IN", "tie", 8, "male", "en-IN-Aarav", "Both acceptable for this sentence."),
+    ("en-IN", "A", 7, "female", "en-IN-Pooja", None),
+    ("en-IN", "B", 6, "male", "en-IN-Abhinav", "Prod clip clipped slightly at the end."),
+    # hi-IN
+    ("hi-IN", "A", 5, "male", "hi-IN-Karthikeyan", None),
+    ("hi-IN", "B", 4, "female", "hi-IN-Ayushi", "Dev felt more natural on Hindi fillers."),
+    ("hi-IN", "A", 3, "male", "hi-IN-Hardik", None),
+    ("hi-IN", "tie", 2, "female", "hi-IN-Alia", "Hard to tell them apart."),
+    # bn-IN
+    ("bn-IN", "A", 4, "male", "bn-IN-Subhankar", None),
+    ("bn-IN", "B", 3, "female", "bn-IN-Debarati", "Dev pacing felt more natural."),
+    ("bn-IN", "A", 2, "male", "bn-IN-Arnab", None),
+    ("bn-IN", "tie", 1, "female", "bn-IN-Anisha", "Hard to tell them apart."),
 ]
 
 
@@ -195,7 +209,11 @@ def main() -> int:
         if voice not in config.TTS_PROVIDERS[ANCHOR].supported_voices:
             pool = FALCON_BATTLE_VOICES.get(lang, {}).get(gender, [])
             voice = pool[0] if pool else voice
-        text = ARENA_COMPARISON_TEXTS[i % len(ARENA_COMPARISON_TEXTS)]
+        texts = {
+            "hi-IN": HINDI_COMPARISON_TEXTS,
+            "bn-IN": BANGLA_COMPARISON_TEXTS,
+        }.get(lang, ARENA_COMPARISON_TEXTS)
+        text = texts[i % len(texts)]
         _insert_battle_and_vote(
             db,
             language=lang,

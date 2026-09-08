@@ -15,9 +15,10 @@ from arena_language_registry import (
     ARENA_LANGUAGES,
     FALCON_BATTLE_VOICES,
     FALCON_PROVIDER_IDS,
-    MURF_VOICE_GENDERS,
+    LANGUAGE_UI_ACCENT,
     build_provider_languages,
     flatten_voice_ids,
+    get_falcon_voice_config,
 )
 
 @dataclass
@@ -157,17 +158,6 @@ def get_omni_falcon_api_key() -> str:
     return get_falcon_dev_api_key()
 
 
-def _infer_voice_info(voice_id: str) -> VoiceInfo:
-    """Build display metadata from a Murf voice id and FALCON_BATTLE_VOICES gender."""
-    parts = voice_id.split("-")
-    accent_map = {"US": "US", "UK": "UK", "IN": "IN"}
-    accent = accent_map.get(parts[1], parts[1].upper()) if len(parts) >= 2 else "US"
-    slug = parts[-1].split("[")[0].replace("cc-", "")
-    name = slug[:1].upper() + slug[1:] if slug else voice_id
-    gender = MURF_VOICE_GENDERS.get(voice_id, "male")
-    return VoiceInfo(voice_id, name, gender, accent)
-
-
 _FALCON_BATTLE_VOICE_IDS: List[str] = flatten_voice_ids(FALCON_BATTLE_VOICES)
 
 
@@ -177,7 +167,16 @@ def get_falcon_supported_voices(provider_id: str = "falcon_dev") -> List[str]:
 
 
 def get_falcon_voice_info() -> Dict[str, VoiceInfo]:
-    return {vid: _infer_voice_info(vid) for vid in _FALCON_BATTLE_VOICE_IDS}
+    """Display metadata from the shared Falcon battle catalog."""
+    out: Dict[str, VoiceInfo] = {}
+    for lang, pool in FALCON_BATTLE_VOICES.items():
+        accent = LANGUAGE_UI_ACCENT.get(lang, lang)
+        for gender, ids in pool.items():
+            for vid in ids:
+                cfg = get_falcon_voice_config(vid)
+                name = cfg.voice_id if cfg else vid.rsplit("-", 1)[-1]
+                out[vid] = VoiceInfo(vid, name, gender, accent)
+    return out
 
 TTS_PROVIDERS = {
     "falcon_dev": TTSConfig(
@@ -399,6 +398,8 @@ LANGUAGE_TO_CORPUS: Dict[str, str] = {
     "en-US": "en-shared",
     "en-IN": "en-shared",
     "en-UK": "en-shared",
+    "hi-IN": "hi-IN",
+    "bn-IN": "bn-IN",
 }
 
 # Legacy blind-UI locale key for each language (voice helpers + corpus loader).
@@ -406,6 +407,8 @@ LANGUAGE_TO_UI_LOCALE: Dict[str, str] = {
     "en-US": "US",
     "en-IN": "IN",
     "en-UK": "UK",
+    "hi-IN": "HI",
+    "bn-IN": "BN",
 }
 
 # Per-provider languages with male/female voice id lists per language.
