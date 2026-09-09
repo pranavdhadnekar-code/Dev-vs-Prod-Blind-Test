@@ -39,15 +39,17 @@ ARENA_LANGUAGES: Dict[str, str] = {
     "en-UK": "English (UK)",
     "hi-IN": "Hindi",
     "bn-IN": "Bengali",
+    "ta-IN": "Tamil",
 }
 
-# Blind-UI locale key (US/IN/UK/HI/BN) for catalog accent matching.
+# Blind-UI locale key (US/IN/UK/HI/BN/TA) for catalog accent matching.
 LANGUAGE_UI_ACCENT: Dict[str, str] = {
     "en-US": "US",
     "en-IN": "IN",
     "en-UK": "UK",
     "hi-IN": "HI",
     "bn-IN": "BN",
+    "ta-IN": "TA",
 }
 
 FALCON_VOICE_CONFIGS: Dict[str, FalconVoiceConfig] = {}
@@ -158,6 +160,20 @@ FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
             ("Debarati", "Conversational"),
             ("Anisha", "Conversational", "bn-IN"),
             ("Ishani", "Conversational"),
+        ],
+    ),
+    "ta-IN": _pool(
+        "ta-IN",
+        male=[
+            ("Karthikeyan", "Conversational"),
+            ("Samar", "Conversational", "ta-IN"),
+            ("Sarvesh", "Conversational"),
+        ],
+        female=[
+            ("Anisha", "Conversational", "ta-IN"),
+            ("Pooja", "Conversational", "ta-IN"),
+            ("Abirami", "Conversational"),
+            ("Iniya", "Conversational"),
         ],
     ),
 }

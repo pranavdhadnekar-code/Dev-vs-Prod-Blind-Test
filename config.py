@@ -400,6 +400,7 @@ LANGUAGE_TO_CORPUS: Dict[str, str] = {
     "en-UK": "en-shared",
     "hi-IN": "hi-IN",
     "bn-IN": "bn-IN",
+    "ta-IN": "ta-IN",
 }
 
 # Legacy blind-UI locale key for each language (voice helpers + corpus loader).
@@ -409,6 +410,7 @@ LANGUAGE_TO_UI_LOCALE: Dict[str, str] = {
     "en-UK": "UK",
     "hi-IN": "HI",
     "bn-IN": "BN",
+    "ta-IN": "TA",
 }
 
 # Per-provider languages with male/female voice id lists per language.

@@ -2,6 +2,7 @@
 
 en-US, en-UK, and en-IN share the same comparison texts (`en-shared` bucket).
 Hindi uses `HINDI_COMPARISON_TEXTS`. Bangla uses `BANGLA_COMPARISON_TEXTS`.
+Tamil uses `TAMIL_COMPARISON_TEXTS`.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from arena_comparison_corpus import (
     ARENA_COMPARISON_TEXTS,
     BANGLA_COMPARISON_TEXTS,
     HINDI_COMPARISON_TEXTS,
+    TAMIL_COMPARISON_TEXTS,
 )
 
 _VOICE_BATTLE_TSV = Path(__file__).resolve().parent / "voice_battle_corpus.tsv"
@@ -28,6 +30,7 @@ _VOICE_BATTLE_UI_TO_BCP_LOCALE: Dict[str, str] = {
     "UK": "en-shared",
     "HI": "hi-IN",
     "BN": "bn-IN",
+    "TA": "ta-IN",
 }
 
 
@@ -66,6 +69,8 @@ def bundled_default_sentences_voice_battle(ui_locale: str) -> str:
         return "\n".join(HINDI_COMPARISON_TEXTS)
     if tag == "bn-IN":
         return "\n".join(BANGLA_COMPARISON_TEXTS)
+    if tag == "ta-IN":
+        return "\n".join(TAMIL_COMPARISON_TEXTS)
     by_lc = _lines_by_bcp_locale(_bundle_mtime_ns())
     seq = by_lc.get(tag) or by_lc.get("en-shared")
     if not seq:

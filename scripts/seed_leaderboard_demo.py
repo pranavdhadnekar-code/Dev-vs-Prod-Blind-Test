@@ -25,6 +25,7 @@ from arena_comparison_corpus import (
     ARENA_COMPARISON_TEXTS,
     BANGLA_COMPARISON_TEXTS,
     HINDI_COMPARISON_TEXTS,
+    TAMIL_COMPARISON_TEXTS,
 )
 from arena_language_registry import FALCON_BATTLE_VOICES
 from database import BenchmarkDatabase
@@ -70,6 +71,11 @@ VOTE_PLAN = [
     ("bn-IN", "B", 3, "female", "bn-IN-Debarati", "Dev pacing felt more natural."),
     ("bn-IN", "A", 2, "male", "bn-IN-Arnab", None),
     ("bn-IN", "tie", 1, "female", "bn-IN-Anisha", "Hard to tell them apart."),
+    # ta-IN
+    ("ta-IN", "A", 4, "male", "ta-IN-Karthikeyan", None),
+    ("ta-IN", "B", 3, "female", "ta-IN-Anisha", "Dev felt more natural on Tamil fillers."),
+    ("ta-IN", "A", 2, "male", "ta-IN-Sarvesh", None),
+    ("ta-IN", "tie", 1, "female", "ta-IN-Iniya", "Hard to tell them apart."),
 ]
 
 
@@ -212,6 +218,7 @@ def main() -> int:
         texts = {
             "hi-IN": HINDI_COMPARISON_TEXTS,
             "bn-IN": BANGLA_COMPARISON_TEXTS,
+            "ta-IN": TAMIL_COMPARISON_TEXTS,
         }.get(lang, ARENA_COMPARISON_TEXTS)
         text = texts[i % len(texts)]
         _insert_battle_and_vote(
