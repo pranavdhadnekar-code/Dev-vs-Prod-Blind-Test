@@ -1,7 +1,7 @@
 """Per-language test corpus for the Voice Arena.
 
 English locales (en-US, en-UK, en-IN) share the same fixed sentence list in
-`arena_comparison_corpus.py`. Hindi, Bangla, and Tamil use their own lists.
+`arena_comparison_corpus.py`. Hindi, Bangla, Tamil, Marathi, and Kannada use their own lists.
 The same item text is used for both clips in a battle. Each item gets a stable
 id for reproducibility (`shared:<index>` or `{locale}:<index>`).
 """
@@ -15,6 +15,8 @@ from arena_comparison_corpus import (
     ARENA_COMPARISON_TEXTS,
     BANGLA_COMPARISON_TEXTS,
     HINDI_COMPARISON_TEXTS,
+    KANNADA_COMPARISON_TEXTS,
+    MARATHI_COMPARISON_TEXTS,
     TAMIL_COMPARISON_TEXTS,
 )
 
@@ -23,6 +25,8 @@ _NATIVE_CORPORA: Dict[str, Sequence[str]] = {
     "hi-IN": HINDI_COMPARISON_TEXTS,
     "bn-IN": BANGLA_COMPARISON_TEXTS,
     "ta-IN": TAMIL_COMPARISON_TEXTS,
+    "mr-IN": MARATHI_COMPARISON_TEXTS,
+    "kn-IN": KANNADA_COMPARISON_TEXTS,
 }
 
 

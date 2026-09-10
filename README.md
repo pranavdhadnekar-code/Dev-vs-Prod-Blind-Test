@@ -73,7 +73,7 @@ OPENAI_API_KEY=...               # OpenAI TTS competitor + comment summaries
 
 ### Languages & providers
 
-Languages: `en-US, en-IN, en-UK, hi-IN, bn-IN, ta-IN` (extensible in `config.py`).
+Languages: `en-US, en-IN, en-UK, hi-IN, bn-IN, ta-IN, mr-IN, kn-IN` (extensible in `config.py`).
 Each provider declares the languages it supports and a **disclosed representative
 voice** per (language, gender). Only providers that support the selected language
 (and the anchor) are scheduled for it.

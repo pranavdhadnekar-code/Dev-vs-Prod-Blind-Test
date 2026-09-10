@@ -20,6 +20,8 @@ _TEST_TEXT = {
     "hi-IN": "यह एक वॉइस टेस्ट है।",
     "bn-IN": "এটি একটি ভয়েস টেস্ট।",
     "ta-IN": "இது ஒரு குரல் சோதனை.",
+    "mr-IN": "हे एक व्हॉइस टेस्ट आहे.",
+    "kn-IN": "ಇದು ಒಂದು ವಾಯ್ಸ್ ಟೆಸ್ಟ್.",
 }
 def _probe_timeout(provider_id: str, timeout: Optional[float]) -> float:
     if timeout is not None:

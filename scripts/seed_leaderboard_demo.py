@@ -25,6 +25,8 @@ from arena_comparison_corpus import (
     ARENA_COMPARISON_TEXTS,
     BANGLA_COMPARISON_TEXTS,
     HINDI_COMPARISON_TEXTS,
+    KANNADA_COMPARISON_TEXTS,
+    MARATHI_COMPARISON_TEXTS,
     TAMIL_COMPARISON_TEXTS,
 )
 from arena_language_registry import FALCON_BATTLE_VOICES
@@ -42,23 +44,23 @@ VOTE_PLAN = [
     ("en-US", "B", 11, "female", "en-US-Nimisha", "Dev felt more natural in pacing."),
     ("en-US", "A", 10, "male", "en-US-Bertie", None),
     ("en-US", "B", 9, "female", "en-US-Heidi", "Less robotic on longer sentences."),
-    ("en-US", "tie", 8, "male", "en-US-Gordon", "Honestly could not tell them apart."),
+    ("en-US", "tie", 8, "male", "en-US-Matthew", "Honestly could not tell them apart."),
     ("en-US", "A", 7, "female", "en-US-Madison", None),
-    ("en-US", "B", 6, "male", "en-US-Carlos", "Dev pronunciation of numbers was better."),
-    ("en-US", "A", 5, "female", "en-US-Abirami", None),
+    ("en-US", "B", 6, "male", "en-US-Joshua", "Dev pronunciation of numbers was better."),
+    ("en-US", "A", 5, "female", "en-US-Amara", None),
     # en-UK
-    ("en-UK", "B", 12, "male", "en-UK-Benedict", "Dev had warmer tone for this voice."),
+    ("en-UK", "B", 12, "male", "en-UK-Joshua", "Dev had warmer tone for this voice."),
     ("en-UK", "A", 11, "female", "en-UK-Lydia", None),
-    ("en-UK", "B", 10, "male", "en-UK-Joshua", "Slight metallic edge on prod clip."),
+    ("en-UK", "B", 10, "male", "en-UK-Bertie", "Slight metallic edge on prod clip."),
     ("en-UK", "tie", 9, "female", "en-UK-Ruby", None),
-    ("en-UK", "A", 8, "male", "en-UK-Freddie", None),
-    ("en-UK", "B", 7, "female", "en-UK-Sharon", "Dev pause before commas felt right."),
+    ("en-UK", "A", 8, "male", "en-UK-Joshua", None),
+    ("en-UK", "B", 7, "female", "en-UK-Lydia", "Dev pause before commas felt right."),
     # en-IN
-    ("en-IN", "A", 12, "male", "en-IN-Nikhil", None),
+    ("en-IN", "A", 12, "male", "en-IN-Abhinav", None),
     ("en-IN", "B", 11, "female", "en-IN-Anisha", "Dev intonation on Indian English was stronger."),
     ("en-IN", "A", 10, "male", "en-IN-Samar", None),
     ("en-IN", "B", 9, "female", "en-IN-Anusha", None),
-    ("en-IN", "tie", 8, "male", "en-IN-Aarav", "Both acceptable for this sentence."),
+    ("en-IN", "tie", 8, "male", "en-IN-Samar", "Both acceptable for this sentence."),
     ("en-IN", "A", 7, "female", "en-IN-Pooja", None),
     ("en-IN", "B", 6, "male", "en-IN-Abhinav", "Prod clip clipped slightly at the end."),
     # hi-IN
@@ -69,13 +71,22 @@ VOTE_PLAN = [
     # bn-IN
     ("bn-IN", "A", 4, "male", "bn-IN-Subhankar", None),
     ("bn-IN", "B", 3, "female", "bn-IN-Debarati", "Dev pacing felt more natural."),
-    ("bn-IN", "A", 2, "male", "bn-IN-Arnab", None),
-    ("bn-IN", "tie", 1, "female", "bn-IN-Anisha", "Hard to tell them apart."),
+    ("bn-IN", "A", 2, "male", "bn-IN-Subhankar", None),
+    ("bn-IN", "tie", 1, "female", "bn-IN-Debarati", "Hard to tell them apart."),
     # ta-IN
     ("ta-IN", "A", 4, "male", "ta-IN-Karthikeyan", None),
     ("ta-IN", "B", 3, "female", "ta-IN-Anisha", "Dev felt more natural on Tamil fillers."),
-    ("ta-IN", "A", 2, "male", "ta-IN-Sarvesh", None),
-    ("ta-IN", "tie", 1, "female", "ta-IN-Iniya", "Hard to tell them apart."),
+    ("ta-IN", "A", 2, "male", "ta-IN-Samar", None),
+    ("ta-IN", "tie", 1, "female", "ta-IN-Pooja", "Hard to tell them apart."),
+    # mr-IN
+    ("mr-IN", "A", 4, "male", "mr-IN-Vaibhav", None),
+    ("mr-IN", "B", 3, "female", "mr-IN-Prajakta", "Dev pacing felt more natural."),
+    ("mr-IN", "A", 2, "male", "mr-IN-Prathamesh", None),
+    ("mr-IN", "tie", 1, "female", "mr-IN-Anisha", "Hard to tell them apart."),
+    # kn-IN
+    ("kn-IN", "A", 3, "male", "kn-IN-Samar", None),
+    ("kn-IN", "B", 2, "female", "kn-IN-Harshitha", "Dev felt more natural on Kannada fillers."),
+    ("kn-IN", "tie", 1, "male", "kn-IN-Samar", "Hard to tell them apart."),
 ]
 
 
@@ -219,6 +230,8 @@ def main() -> int:
             "hi-IN": HINDI_COMPARISON_TEXTS,
             "bn-IN": BANGLA_COMPARISON_TEXTS,
             "ta-IN": TAMIL_COMPARISON_TEXTS,
+            "mr-IN": MARATHI_COMPARISON_TEXTS,
+            "kn-IN": KANNADA_COMPARISON_TEXTS,
         }.get(lang, ARENA_COMPARISON_TEXTS)
         text = texts[i % len(texts)]
         _insert_battle_and_vote(

@@ -27,7 +27,7 @@ class VoiceInfo:
     id: str
     name: str
     gender: str  # "male" or "female"
-    accent: str = "US"  # e.g. US, UK, IN, HI, BN, TA
+    accent: str = "US"  # e.g. US, UK, IN, HI, BN, TA, MR, KN
 
 @dataclass
 class TTSConfig:
@@ -233,6 +233,8 @@ def voice_matches_blind_locale(voice_id: str, info: VoiceInfo, locale: Optional[
         return vl.startswith(("es-es-", "es-mx-")) and info.accent == "ES"
     if locale == "MR":
         return vl.startswith("mr-in-") and info.accent == "MR"
+    if locale == "KN":
+        return vl.startswith("kn-in-") and info.accent == "KN"
     if locale == "ML":
         return vl.startswith("ml-in-") and info.accent == "ML"
     return False
@@ -254,7 +256,7 @@ def get_voices_by_gender(provider_id: str, gender: str) -> List[str]:
 def get_voices_by_gender_and_locale(provider_id: str, gender: str, locale: str = None) -> List[str]:
     """Get voices filtered by gender and locale/language for a provider.
 
-    Locale keys (blind UI): US = en-US; IN = en-IN; UK = en-UK; HI = hi-IN; BN = bn-IN; TA = ta-IN.
+    Locale keys (blind UI): US = en-US; IN = en-IN; UK = en-UK; HI = hi-IN; BN = bn-IN; TA = ta-IN; MR = mr-IN; KN = kn-IN.
     Gender must be male or female (lowercase) as set by the UI.
     """
     if provider_id in TTS_PROVIDERS:
@@ -401,6 +403,8 @@ LANGUAGE_TO_CORPUS: Dict[str, str] = {
     "hi-IN": "hi-IN",
     "bn-IN": "bn-IN",
     "ta-IN": "ta-IN",
+    "mr-IN": "mr-IN",
+    "kn-IN": "kn-IN",
 }
 
 # Legacy blind-UI locale key for each language (voice helpers + corpus loader).
@@ -411,6 +415,8 @@ LANGUAGE_TO_UI_LOCALE: Dict[str, str] = {
     "hi-IN": "HI",
     "bn-IN": "BN",
     "ta-IN": "TA",
+    "mr-IN": "MR",
+    "kn-IN": "KN",
 }
 
 # Per-provider languages with male/female voice id lists per language.
@@ -474,7 +480,7 @@ def corpus_locale_for_language(language: str) -> str:
 
 
 def ui_locale_for_language(language: str) -> str:
-    """Legacy blind-UI locale key (US/IN/UK/HI/BN/TA) for a language."""
+    """Legacy blind-UI locale key (US/IN/UK/HI/BN/TA/MR/KN) for a language."""
     return LANGUAGE_TO_UI_LOCALE.get(language, "US")
 
 

@@ -40,9 +40,11 @@ ARENA_LANGUAGES: Dict[str, str] = {
     "hi-IN": "Hindi",
     "bn-IN": "Bengali",
     "ta-IN": "Tamil",
+    "mr-IN": "Marathi",
+    "kn-IN": "Kannada",
 }
 
-# Blind-UI locale key (US/IN/UK/HI/BN/TA) for catalog accent matching.
+# Blind-UI locale key (US/IN/UK/HI/BN/TA/MR/KN) for catalog accent matching.
 LANGUAGE_UI_ACCENT: Dict[str, str] = {
     "en-US": "US",
     "en-IN": "IN",
@@ -50,6 +52,8 @@ LANGUAGE_UI_ACCENT: Dict[str, str] = {
     "hi-IN": "HI",
     "bn-IN": "BN",
     "ta-IN": "TA",
+    "mr-IN": "MR",
+    "kn-IN": "KN",
 }
 
 FALCON_VOICE_CONFIGS: Dict[str, FalconVoiceConfig] = {}
@@ -94,14 +98,13 @@ FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
         male=[
             ("Joshua", "Conversational", "en-US"),
             ("Bertie", "Conversational", "en-US"),
-            ("Gordon", "Conversational"),
-            ("Carlos", "Conversational", "en-US"),
+            ("Matthew", "Conversation"),
         ],
         female=[
             ("Nimisha", "Conversational", "en-US"),
             ("Heidi", "Conversational", "en-US"),
             ("Madison", "Conversational"),
-            ("Abirami", "Conversational", "en-US"),
+            ("Amara", "Conversational"),
         ],
     ),
     "en-UK": _pool(
@@ -109,29 +112,22 @@ FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
         male=[
             ("Joshua", "Conversational"),
             ("Bertie", "Conversational"),
-            ("Benedict", "Conversational"),
-            ("Freddie", "Conversational"),
         ],
         female=[
             ("Lydia", "Conversational"),
             ("Ruby", "Conversational"),
-            ("Sharon", "Conversational"),
-            ("Heidi", "Conversational"),
         ],
     ),
     "en-IN": _pool(
         "en-IN",
         male=[
             ("Abhinav", "Conversational"),
-            ("Nikhil", "Conversational"),
             ("Samar", "Conversational"),
-            ("Aarav", "Conversational"),
         ],
         female=[
             ("Anisha", "Conversation"),
             ("Pooja", "Conversational"),
             ("Anusha", "Conversational"),
-            ("Arohi", "Conversational"),
         ],
     ),
     "hi-IN": _pool(
@@ -153,13 +149,9 @@ FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
         "bn-IN",
         male=[
             ("Subhankar", "Conversational"),
-            ("Abhik", "Conversational"),
-            ("Arnab", "Conversational"),
         ],
         female=[
             ("Debarati", "Conversational"),
-            ("Anisha", "Conversational", "bn-IN"),
-            ("Ishani", "Conversational"),
         ],
     ),
     "ta-IN": _pool(
@@ -167,13 +159,30 @@ FALCON_BATTLE_VOICES: Dict[str, VoicePool] = {
         male=[
             ("Karthikeyan", "Conversational"),
             ("Samar", "Conversational", "ta-IN"),
-            ("Sarvesh", "Conversational"),
         ],
         female=[
             ("Anisha", "Conversational", "ta-IN"),
             ("Pooja", "Conversational", "ta-IN"),
-            ("Abirami", "Conversational"),
-            ("Iniya", "Conversational"),
+        ],
+    ),
+    "mr-IN": _pool(
+        "mr-IN",
+        male=[
+            ("Vaibhav", "Conversational"),
+            ("Prathamesh", "Conversational"),
+        ],
+        female=[
+            ("Prajakta", "Conversational"),
+            ("Anisha", "Conversational", "mr-IN"),
+        ],
+    ),
+    "kn-IN": _pool(
+        "kn-IN",
+        male=[
+            ("Samar", "Conversational", "kn-IN"),
+        ],
+        female=[
+            ("Harshitha", "Conversational"),
         ],
     ),
 }
